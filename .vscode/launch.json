@@ -11,6 +11,38 @@
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
             "args": []
+        },
+        {
+            "name": "Test Create",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/tests/create/create_test.go",
+            "args": []
+        },
+        {
+            "name": "Test Read",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/tests/read/read_test.go",
+            "args": []
+        },
+        {
+            "name": "Test update",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/tests/Update/Update_test.go",
+            "args": []
+        },
+        {
+            "name": "Test Delete",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/tests/delete/delete_test.go",
+            "args": []
         }
     ]
 }

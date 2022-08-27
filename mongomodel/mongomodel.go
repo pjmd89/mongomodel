@@ -45,8 +45,10 @@ func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r inter
 	if opts == nil {
 		opts = []*options.InsertOneOptions{}
 	}
-	insertedID, _ := o.conn.Create(data, o.modelName, opts)
-	SetID(r, insertedID.(primitive.ObjectID))
+	insertedID, err := o.conn.Create(data, o.modelName, opts)
+	if err == nil{
+		SetID(r, insertedID.(primitive.ObjectID))
+	}
 	return r, err
 }
 func (o *Model) Read(where interface{}, opts interface{}) (r interface{}, err error) {
@@ -56,10 +58,12 @@ func (o *Model) Read(where interface{}, opts interface{}) (r interface{}, err er
 		return r, err
 	}
 	r, err = o.conn.Read(where, o.modelName, opts)
-	cursor = r.(*mongo.Cursor)
-	instance := o.createSliceResult()
-	cursor.All(context.TODO(), &instance)
-	r = instance
+	if err == nil {
+		cursor = r.(*mongo.Cursor)
+		instance := o.createSliceResult()
+		cursor.All(context.TODO(), &instance)
+		r = instance
+	}
 	return r, err
 }
 func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
@@ -71,10 +75,13 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 	data := SetData(inputs, o.updateSelf)
 	SetUpdatedDate(data)
 	r, err = o.conn.Update(data, where, o.modelName, opts)
-	cursor = r.(*mongo.Cursor)
-	instance := o.createSliceResult()
-	cursor.All(context.TODO(), &instance)
-	r = instance
+	if err == nil{
+		cursor = r.(*mongo.Cursor)
+		instance := o.createSliceResult()
+		cursor.All(context.TODO(), &instance)
+		r = instance
+	}
+	
 	return r, err
 }
 func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err error) {
@@ -85,10 +92,12 @@ func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err 
 	}
 
 	r, err = o.conn.Delete(where, o.modelName, opts)
-	cursor = r.(*mongo.Cursor)
-	instance := o.createSliceResult()
-	cursor.All(context.TODO(), &instance)
-	r = instance
+	if err == nil{
+		cursor = r.(*mongo.Cursor)
+		instance := o.createSliceResult()
+		cursor.All(context.TODO(), &instance)
+		r = instance
+	}
 	return r, err
 }
 func (o *Model) Count(where interface{}, opts interface{}) (r int64, err error) {
@@ -98,7 +107,10 @@ func (o *Model) Count(where interface{}, opts interface{}) (r int64, err error) 
 		return r, err
 	}
 	count, err = o.conn.Count(where, o.modelName, opts)
-	r = count.(int64)
+	if err == nil{
+		r = count.(int64);
+	}
+	
 	return
 }
 func (o *Model) GetModelName() string {

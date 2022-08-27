@@ -18,7 +18,7 @@ import (
 
 func NewConn(configPath *string) (r dbutils.DBInterface) {
 	db := &MongoDBConn{}
-	configFile := "db/db.json";
+	configFile := "./etc/db/db.json";
 
 	if configPath != nil {
 		configFile = *configPath;

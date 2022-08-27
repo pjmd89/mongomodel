@@ -38,6 +38,7 @@ func TestCreate(t *testing.T) {
 	where := map[string]interface{}{
 		"_id": id,
 	}
+	
 	result, err = Users.Read(where, nil)
 	if err != nil {
 		t.Fatal("Se genero un error al hacer la consulta del registro: ", err.Error())

@@ -11,7 +11,7 @@ type Trabajo struct {
 	Direccion string `bson:"direccion"`
 }
 type Usuarios struct {
-	mongomodel.Model `bson:"-"`
+	mongomodel.Model 					`bson:"-"`
 	Id               primitive.ObjectID `bson:"_id,omitempty" gql:"name=id,id=true,objectID=true"`
 	Nombre           string             `bson:"nombre" gql:"name=nombre"`
 	Apellido         string             `bson:"apellido" gql:"name=apellido"`

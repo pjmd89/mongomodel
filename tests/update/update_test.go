@@ -34,6 +34,7 @@ func TestUpdate(t *testing.T) {
 	updateData := map[string]interface{}{
 		"edad": 34,
 	}
+	
 	result, err = Users.Update(updateData, findById, nil)
 	userResult = result.([]tests.Usuarios)
 

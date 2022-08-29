@@ -71,6 +71,9 @@ func TestCreateInt(t *testing.T) {
 		t.Fatal("el campo IntPtrDef no se guardo correctamente")
 	}
 }
+func TestCreateArray(t *testing.T) {
+
+}
 func TestCreateString(t *testing.T) {
 	db := tests.CreateDB()
 	saveStr := "tests"

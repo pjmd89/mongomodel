@@ -5,6 +5,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type TestSubTypes struct {
+}
 type TestTypes struct {
 	mongomodel.Model `bson:"-"`
 	Id               primitive.ObjectID `bson:"_id,omitempty" gql:"name=_id,id=true,objectID=true"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"time"
 
 	"github.com/pjmd89/goutils/dbutils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -35,18 +36,18 @@ func (o *Model) GetSkipCollection() []string {
 	return o.conn.(*MongoDBConn).SkipCollection
 }
 func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r interface{}, err error) {
+	var createdDate int64 = time.Now().Unix()
 	if o.init == false {
 		err = errors.New("Not Initialized")
 		return r, err
 	}
-	data := SetData(inputs, o.self)
-	SetCreatedDate(data)
+	data := SetData(inputs, o.self, DatesController{Created: &createdDate})
 	r = data
 	if opts == nil {
 		opts = []*options.InsertOneOptions{}
 	}
 	insertedID, err := o.conn.Create(data, o.modelName, opts)
-	if err == nil{
+	if err == nil {
 		SetID(r, insertedID.(primitive.ObjectID))
 	}
 	return r, err
@@ -68,20 +69,21 @@ func (o *Model) Read(where interface{}, opts interface{}) (r interface{}, err er
 }
 func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
+	var updateDate int64 = time.Now().Unix()
 	if o.init == false {
 		err = errors.New("Not Initialized")
 		return r, err
 	}
-	data := SetData(inputs, o.updateSelf)
-	SetUpdatedDate(data)
-	r, err = o.conn.Update(data, where, o.modelName, opts)
-	if err == nil{
+
+	data := SetData(inputs, o.updateSelf, DatesController{Updated: &updateDate})
+	r, err = o.conn.Update(Update{Set: data}, where, o.modelName, opts)
+	if err == nil {
 		cursor = r.(*mongo.Cursor)
 		instance := o.createSliceResult()
 		cursor.All(context.TODO(), &instance)
 		r = instance
 	}
-	
+
 	return r, err
 }
 func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err error) {
@@ -92,7 +94,7 @@ func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err 
 	}
 
 	r, err = o.conn.Delete(where, o.modelName, opts)
-	if err == nil{
+	if err == nil {
 		cursor = r.(*mongo.Cursor)
 		instance := o.createSliceResult()
 		cursor.All(context.TODO(), &instance)
@@ -107,10 +109,10 @@ func (o *Model) Count(where interface{}, opts interface{}) (r int64, err error) 
 		return r, err
 	}
 	count, err = o.conn.Count(where, o.modelName, opts)
-	if err == nil{
-		r = count.(int64);
+	if err == nil {
+		r = count.(int64)
 	}
-	
+
 	return
 }
 func (o *Model) GetModelName() string {

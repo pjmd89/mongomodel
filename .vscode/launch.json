@@ -17,7 +17,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}/tests/create/create_test.go",
+            "program": "${workspaceFolder}/tests/model_test/create_test.go",
             "args": []
         },
         {
@@ -25,7 +25,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}/tests/read/read_test.go",
+            "program": "${workspaceFolder}/tests/model_test/read_test.go",
             "args": []
         },
         {
@@ -33,7 +33,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}/tests/Update/Update_test.go",
+            "program": "${workspaceFolder}/tests/model_test/Update_test.go",
             "args": []
         },
         {
@@ -41,7 +41,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}/tests/delete/delete_test.go",
+            "program": "${workspaceFolder}/tests/model_test/delete_test.go",
             "args": []
         }
     ]

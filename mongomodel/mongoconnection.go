@@ -208,8 +208,7 @@ func(o *MongoDBConn) Update(inputs interface{}, where interface {}, collection s
 		checkOpts = false;
 	}
 	if checkOpts {
-		update := MongoUpdate{Set: inputs};
-		_, err = coll.UpdateOne(context.TODO(), where, update, opts.([]*options.UpdateOptions)...);
+		_, err = coll.UpdateOne(context.TODO(), where, inputs, opts.([]*options.UpdateOptions)...);
 		cursor, _ = coll.Find(context.TODO(),where);
 		results = cursor;
 		if err != nil{

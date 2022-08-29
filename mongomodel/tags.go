@@ -9,7 +9,8 @@ import (
 
 type Tags struct {
 	Name        string
-	Default     interface{}
+	Default     string
+	isDefault   bool
 	IsID        bool
 	IsObjectID  bool
 	CreatedDate bool
@@ -49,6 +50,7 @@ func getTags(field reflect.StructField) (r Tags) {
 				break
 			case "default":
 				r.Default = dataSplit[1]
+				r.isDefault = true
 				break
 			case "id":
 				isTrue := false

@@ -47,8 +47,11 @@ func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r inter
 		opts = []*options.InsertOneOptions{}
 	}
 	insertedID, err := o.conn.Create(data, o.modelName, opts)
-	if err == nil {
+	if err == nil && insertedID != nil {
 		SetID(r, insertedID.(primitive.ObjectID))
+	}
+	if err == nil && insertedID == nil {
+		err = errors.New("Inconsistent data to inserted. Check data sent. No register saved.")
 	}
 	return r, err
 }

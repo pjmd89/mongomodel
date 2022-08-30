@@ -12,8 +12,14 @@ func TestCreateID(t *testing.T) {
 	db := tests.CreateDB()
 	testTypes := tests.TestTypes{}
 	testTypes.Init(tests.TestTypes{}, db)
-
-	userData := map[string]interface{}{}
+	strID := "62c68a2aed60c36f6253251d"
+	objectID, _ := primitive.ObjectIDFromHex(strID)
+	userData := map[string]interface{}{
+		"idWithVal":      strID,
+		"idPtrWithVal":   strID,
+		"idWithIDVal":    objectID,
+		"idPtrWithIDVal": objectID,
+	}
 
 	result, err := testTypes.Create(userData, nil)
 
@@ -26,6 +32,30 @@ func TestCreateID(t *testing.T) {
 	t.Logf("Id registrado: %v", id.Hex())
 	if !primitive.IsValidObjectID(id.Hex()) {
 		t.Fatal("No es un ID valido: ", id.Hex())
+	}
+	t.Logf("strID: %s, IdWithVal: %s", strID, testResult.IdWithVal.Hex())
+	if strID != testResult.IdWithVal.Hex() {
+		t.Fatal("IdWithVal no se guardo correctamente")
+	}
+	t.Logf("strID: %s, IdPtrWithVal: %s", strID, testResult.IdPtrWithVal.Hex())
+	if strID != testResult.IdPtrWithVal.Hex() {
+		t.Fatal("IdPtrWithVal no se guardo correctamente")
+	}
+	t.Logf("strID: %s, IdWithIDVal: %s", strID, testResult.IdWithIDVal.Hex())
+	if strID != testResult.IdWithIDVal.Hex() {
+		t.Fatal("IdWithVal no se guardo correctamente")
+	}
+	t.Logf("strID: %s, IdPtrWithIDVal: %s", strID, testResult.IdPtrWithIDVal.Hex())
+	if strID != testResult.IdPtrWithIDVal.Hex() {
+		t.Fatal("IdPtrWithIDVal no se guardo correctamente")
+	}
+	t.Logf("IdOutVal: %s", testResult.IdOutVal.Hex())
+	if "000000000000000000000000" != testResult.IdOutVal.Hex() {
+		t.Fatal("IdOutVal no se guardo correctamente")
+	}
+	t.Logf("IdPtrOutVal: %v", testResult.IdPtrOutVal)
+	if testResult.IdPtrOutVal != nil {
+		t.Fatal("IdPtrOutVal no se guardo correctamente")
 	}
 }
 func TestCreateInt(t *testing.T) {
@@ -71,9 +101,6 @@ func TestCreateInt(t *testing.T) {
 		t.Fatal("el campo IntPtrDef no se guardo correctamente")
 	}
 }
-func TestCreateArray(t *testing.T) {
-
-}
 func TestCreateString(t *testing.T) {
 	db := tests.CreateDB()
 	saveStr := "tests"
@@ -81,8 +108,8 @@ func TestCreateString(t *testing.T) {
 	Users.Init(tests.TestTypes{}, db)
 
 	userData := map[string]interface{}{
-		"StringWithVal":    saveStr,
-		"StringPtrWithVal": saveStr,
+		"stringWithVal":    saveStr,
+		"stringPtrWithVal": saveStr,
 	}
 
 	result, err := Users.Create(userData, nil)
@@ -115,6 +142,36 @@ func TestCreateString(t *testing.T) {
 	if *testResult.StringPtrDef != "test ptr default" {
 		t.Fatal("el campo StringPtrDef no se guardo correctamente")
 	}
+}
+func TestCreateArray(t *testing.T) {
+	db := tests.CreateDB()
+	Users := tests.TestTypes{}
+	Users.Init(tests.TestTypes{}, db)
+	arrData := []string{
+		"Hola",
+		"Mundo",
+	}
+
+	userData := map[string]interface{}{
+		"arrWithVal": arrData,
+	}
+
+	result, err := Users.Create(userData, nil)
+
+	if err != nil {
+		t.Fatal("Se genero un error al crear el registro: ", err.Error())
+	}
+	var testResult *tests.TestTypes = result.(*tests.TestTypes)
+
+	t.Logf("Arr: %v", testResult.Arr)
+	if testResult.Arr == nil {
+		t.Fatal("El campo Arr no se guardo correctamente")
+	}
+	t.Logf("ArrPtr: %v", testResult.ArrPtr)
+	if testResult.ArrPtr != nil {
+		t.Fatal("El campo ArrPtr no se guardo correctamente")
+	}
+
 }
 func TestCreatedDate(t *testing.T) {
 	db := tests.CreateDB()

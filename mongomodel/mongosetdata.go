@@ -124,7 +124,16 @@ func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value) {
 		}
 		break
 	case reflect.Slice, reflect.Array:
-		//fmt.Println(tag.Name, fieldKind, field.Type().Name())
+		fieldType := field.Type().Elem()
+		switch field.Type() {
+		case reflect.TypeOf(primitive.ObjectID{}):
+			if !tag.IsID {
+				field.Set(reflect.ValueOf(primitive.ObjectID{}))
+			}
+			break
+		default:
+			field.Set(reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0))
+		}
 		break
 	case reflect.Map:
 		break
@@ -191,11 +200,33 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 		fieldType := field.Type().Elem()
 		value := reflect.New(fieldType)
 		switch inputKind {
+		case reflect.Array, reflect.Slice:
+			if tag.IsObjectID && reflect.TypeOf(inputs[tag.Name]) == reflect.TypeOf(primitive.ObjectID{}) {
+				newID := reflect.New(reflect.TypeOf(primitive.ObjectID{}))
+				newID.Elem().Set(reflect.ValueOf(inputs[tag.Name]))
+				field.Set(newID)
+			}
+			if !tag.IsObjectID {
+				newArr := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
+				newArr.Elem().Set(reflect.ValueOf(inputs[tag.Name]))
+				if fieldType == newArr.Type() {
+
+				}
+				fmt.Println(fieldType, newArr.Elem().Type())
+				field.Set(newArr)
+			}
+			break
 		case reflect.Struct, reflect.Ptr:
 			rField := setStruct(inputs[tag.Name].(map[string]interface{}), field.Interface(), datesController)
 			field.Set(reflect.ValueOf(rField))
 		case reflect.String:
-			value.Elem().Set(reflect.ValueOf(inputs[tag.Name].(string)))
+			if tag.IsObjectID {
+				newID, _ := primitive.ObjectIDFromHex(inputs[tag.Name].(string))
+				value.Elem().Set(reflect.ValueOf(newID))
+			} else {
+				value.Elem().Set(reflect.ValueOf(inputs[tag.Name].(string)))
+			}
+
 			field.Set(value)
 			break
 		case reflect.Int:
@@ -234,7 +265,12 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 		break
 	case reflect.Slice, reflect.Array:
 		if tag.IsObjectID {
-			newID, _ := primitive.ObjectIDFromHex(inputs[tag.Name].(string))
+			var newID primitive.ObjectID
+			if reflect.TypeOf(inputs[tag.Name]).Kind() == reflect.String {
+				newID, _ = primitive.ObjectIDFromHex(inputs[tag.Name].(string))
+			} else if reflect.TypeOf(inputs[tag.Name]) == reflect.TypeOf(primitive.ObjectID{}) {
+				newID = inputs[tag.Name].(primitive.ObjectID)
+			}
 			field.Set(reflect.ValueOf(newID))
 		} else {
 			fmt.Println("slice, array")

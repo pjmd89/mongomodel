@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestCreateID(t *testing.T) {
+func TestID(t *testing.T) {
 	db := tests.CreateDB()
 	testTypes := tests.TestTypes{}
 	testTypes.Init(tests.TestTypes{}, db)
@@ -58,7 +58,7 @@ func TestCreateID(t *testing.T) {
 		t.Fatal("IdPtrOutVal no se guardo correctamente")
 	}
 }
-func TestCreateInt(t *testing.T) {
+func TestInt(t *testing.T) {
 	db := tests.CreateDB()
 	saveInt := 20
 	Users := tests.TestTypes{}
@@ -101,7 +101,7 @@ func TestCreateInt(t *testing.T) {
 		t.Fatal("el campo IntPtrDef no se guardo correctamente")
 	}
 }
-func TestCreateString(t *testing.T) {
+func TestString(t *testing.T) {
 	db := tests.CreateDB()
 	saveStr := "tests"
 	Users := tests.TestTypes{}
@@ -143,7 +143,7 @@ func TestCreateString(t *testing.T) {
 		t.Fatal("el campo StringPtrDef no se guardo correctamente")
 	}
 }
-func TestCreateArray(t *testing.T) {
+func TestArray(t *testing.T) {
 	db := tests.CreateDB()
 	Users := tests.TestTypes{}
 	Users.Init(tests.TestTypes{}, db)
@@ -152,8 +152,16 @@ func TestCreateArray(t *testing.T) {
 		"Mundo",
 	}
 
+	arrStructData := []interface{}{
+		map[string]interface{}{
+			"stringOne": "string",
+		},
+	}
 	userData := map[string]interface{}{
-		"arrWithVal": arrData,
+		"arrWithVal":          arrData,
+		"arrPtrWithVal":       arrData,
+		"arrStructWithVal":    arrStructData,
+		"arrPtrStructWithVal": arrStructData,
 	}
 
 	result, err := Users.Create(userData, nil)
@@ -171,9 +179,87 @@ func TestCreateArray(t *testing.T) {
 	if testResult.ArrPtr != nil {
 		t.Fatal("El campo ArrPtr no se guardo correctamente")
 	}
+	t.Logf("ArrWithVal: %v", testResult.ArrWithVal)
+	if testResult.ArrWithVal[0] != "Hola" {
+		t.Fatal("El campo Arr no se guardo correctamente")
+	}
+	t.Logf("ArrPtrWithVal: %v", testResult.ArrPtrWithVal)
+	if (*testResult.ArrPtrWithVal)[0] != "Hola" {
+		t.Fatal("El campo ArrPtr no se guardo correctamente")
+	}
+	t.Logf("ArrStruct: %v", testResult.ArrStruct)
+	if len(testResult.ArrStruct) != 0 {
+		t.Fatal("El campo ArrStruct no se guardo correctamente")
+	}
+	t.Logf("ArrPtrStruct: %v", testResult.ArrPtrStruct)
+	if testResult.ArrPtrStruct != nil {
+		t.Fatal("El campo ArrPtrStruct no se guardo correctamente")
+	}
 
+	t.Logf("ArrStructWithVal: %v", testResult.ArrStructWithVal)
+	if len(testResult.ArrStructWithVal) == 0 {
+		t.Fatal("El campo ArrStructWithVal no se guardo correctamente")
+	}
+	if testResult.ArrStructWithVal[0].StringOne != "string" {
+		t.Fatal("El campo ArrStructWithVal no se guardo correctamente")
+	}
+	t.Logf("ArrPtrStructWithVal: %v", testResult.ArrPtrStructWithVal)
+	if testResult.ArrPtrStructWithVal == nil {
+		t.Fatal("El campo ArrPtrStructWithVal no se guardo correctamente")
+	}
+	if (*testResult.ArrPtrStructWithVal)[0].StringOne != "string" {
+		t.Fatal("El campo ArrPtrStructWithVal no se guardo correctamente")
+	}
 }
-func TestCreatedDate(t *testing.T) {
+func TestStruct(t *testing.T) {
+	db := tests.CreateDB()
+	Users := tests.TestTypes{}
+	Users.Init(tests.TestTypes{}, db)
+	structata := map[string]interface{}{
+		"stringOne": "str",
+	}
+	userData := map[string]interface{}{
+		"structWithVal":    structata,
+		"structPtrWithVal": structata,
+	}
+
+	result, err := Users.Create(userData, nil)
+	if err != nil {
+		t.Fatal("Se genero un error al crear el registro: ", err.Error())
+	}
+	var testResult *tests.TestTypes = result.(*tests.TestTypes)
+
+	t.Logf("Struct: %v", testResult.Struct)
+	if testResult.Struct.StringOne != "" {
+		t.Fatal("El campo Struct no se guardo correctamente")
+	}
+	if testResult.Struct.StringTwo != "string2" {
+		t.Fatal("El campo Struct no se guardo correctamente")
+	}
+	t.Logf("StructPtr: %v", testResult.StructPtr)
+	if testResult.StructPtr != nil {
+		t.Fatal("El campo StructPtr no se guardo correctamente")
+	}
+
+	t.Logf("StructWithVal: %v", testResult.StructWithVal)
+	if testResult.StructWithVal.StringOne != "str" {
+		t.Fatal("El campo StructWithVal no se guardo correctamente")
+	}
+	if testResult.StructWithVal.StringTwo != "string2" {
+		t.Fatal("El campo StructWithVal no se guardo correctamente")
+	}
+	t.Logf("StructPtrWithVal: %v", testResult.StructPtrWithVal)
+	if testResult.StructPtrWithVal == nil {
+		t.Fatal("El campo StructPtrWithVal no se guardo correctamente")
+	}
+	if testResult.StructPtrWithVal.StringOne != "str" {
+		t.Fatal("El campo StructPtrWithVal no se guardo correctamente")
+	}
+	if testResult.StructPtrWithVal.StringTwo != "string2" {
+		t.Fatal("El campo StructPtrWithVal no se guardo correctamente")
+	}
+}
+func TestDate(t *testing.T) {
 	db := tests.CreateDB()
 	Users := tests.TestTypes{}
 	Users.Init(tests.TestTypes{}, db)

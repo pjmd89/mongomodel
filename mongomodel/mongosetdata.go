@@ -60,16 +60,17 @@ func setStruct(inputs map[string]interface{}, model interface{}, datesController
 			if inputs[tag.Name] != nil {
 				setDataOn(inputs, tag, fieldKind, field, datesController)
 			} else {
-				setNilOn(tag, fieldKind, field)
+				setNilOn(tag, fieldKind, field, datesController)
 			}
 		}
 	}
 	return newModel.Interface()
 }
-func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value) {
+func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) {
 	switch fieldKind {
 	case reflect.Struct:
-		//fmt.Println(tag.Name, fieldKind, field.Type().Name())
+		rField := setStruct(map[string]interface{}{}, field.Interface(), datesController)
+		field.Set(reflect.ValueOf(rField).Elem())
 		break
 	case reflect.Ptr:
 		fieldType := field.Type().Elem()
@@ -194,12 +195,21 @@ func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value) {
 }
 func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) {
 	switch fieldKind {
-	case reflect.Struct, reflect.Ptr:
+	case reflect.Struct:
+		rField := setStruct(inputs[tag.Name].(map[string]interface{}), field.Interface(), datesController)
+		field.Set(reflect.ValueOf(rField).Elem())
+		break
+	case reflect.Ptr:
 		inputType := reflect.TypeOf(inputs[tag.Name])
 		inputKind := inputType.Kind()
 		fieldType := field.Type().Elem()
 		value := reflect.New(fieldType)
 		switch inputKind {
+		case reflect.Map:
+			mField := reflect.New(field.Type().Elem())
+			rField := setStruct(inputs[tag.Name].(map[string]interface{}), mField.Elem().Interface(), datesController)
+			field.Set(reflect.ValueOf(rField))
+			break
 		case reflect.Array, reflect.Slice:
 			if tag.IsObjectID && reflect.TypeOf(inputs[tag.Name]) == reflect.TypeOf(primitive.ObjectID{}) {
 				newID := reflect.New(reflect.TypeOf(primitive.ObjectID{}))
@@ -207,18 +217,30 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 				field.Set(newID)
 			}
 			if !tag.IsObjectID {
-				newArr := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
-				newArr.Elem().Set(reflect.ValueOf(inputs[tag.Name]))
-				if fieldType == newArr.Type() {
+				fieldTypex := field.Type().Elem().Elem()
 
+				inputValue := reflect.ValueOf(inputs[tag.Name])
+				parseArr := reflect.MakeSlice(reflect.SliceOf(fieldTypex), inputValue.Cap(), inputValue.Cap())
+				for i := 0; i < inputValue.Len(); i++ {
+					switch field.Type().Elem().Elem().Kind() {
+					case reflect.Struct:
+						mField := reflect.New(field.Type().Elem().Elem())
+						rField := setStruct(inputs[tag.Name].([]interface{})[i].(map[string]interface{}), mField.Elem().Interface(), datesController)
+						//newArr = reflect.Append(newArr, reflect.ValueOf(rField).Elem())
+						parseArr.Index(i).Set(reflect.ValueOf(rField).Elem())
+						break
+					default:
+						parseArr.Index(i).Set(inputValue.Index(i))
+					}
 				}
-				fmt.Println(fieldType, newArr.Elem().Type())
+				newArr := reflect.New(parseArr.Type())
+				newArr.Elem().Set(parseArr)
 				field.Set(newArr)
 			}
 			break
 		case reflect.Struct, reflect.Ptr:
-			rField := setStruct(inputs[tag.Name].(map[string]interface{}), field.Interface(), datesController)
-			field.Set(reflect.ValueOf(rField))
+			//rField := setStruct(inputs[tag.Name].(map[string]interface{}), field.Interface(), datesController)
+			//field.Set(reflect.ValueOf(rField))
 		case reflect.String:
 			if tag.IsObjectID {
 				newID, _ := primitive.ObjectIDFromHex(inputs[tag.Name].(string))
@@ -273,7 +295,28 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 			}
 			field.Set(reflect.ValueOf(newID))
 		} else {
-			fmt.Println("slice, array")
+			parseArr := reflect.ValueOf(inputs[tag.Name])
+			fieldType := field.Type().Elem()
+			newArr := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
+			switch field.Type().Elem().Kind() {
+			case reflect.Struct, reflect.Ptr:
+				switch reflect.TypeOf(inputs[tag.Name]).Kind() {
+				case reflect.Array, reflect.Slice:
+					for i := 0; i < parseArr.Len(); i++ {
+						mField := reflect.New(field.Type().Elem())
+						rField := setStruct(inputs[tag.Name].([]interface{})[i].(map[string]interface{}), mField.Elem().Interface(), datesController)
+						newArr = reflect.Append(newArr, reflect.ValueOf(rField).Elem())
+					}
+					field.Set(newArr)
+				}
+				break
+			default:
+
+				for i := 0; i < parseArr.Len(); i++ {
+					newArr = reflect.Append(newArr, parseArr.Index(i))
+				}
+				field.Set(newArr)
+			}
 		}
 		break
 	case reflect.Map:

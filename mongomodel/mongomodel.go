@@ -41,18 +41,21 @@ func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r inter
 		err = errors.New("Not Initialized")
 		return r, err
 	}
-	data := SetData(inputs, o.self, DatesController{Created: &createdDate})
+	data, err := SetData(inputs, o.self, DatesController{Created: &createdDate})
 	r = data
 	if opts == nil {
 		opts = []*options.InsertOneOptions{}
 	}
-	insertedID, err := o.conn.Create(data, o.modelName, opts)
-	if err == nil && insertedID != nil {
-		SetID(r, insertedID.(primitive.ObjectID))
+	if err == nil {
+		insertedID, err := o.conn.Create(data, o.modelName, opts)
+		if err == nil && insertedID != nil {
+			SetID(r, insertedID.(primitive.ObjectID))
+		}
+		if err == nil && insertedID == nil {
+			err = errors.New("Inconsistent data to inserted. Check data sent. No register saved.")
+		}
 	}
-	if err == nil && insertedID == nil {
-		err = errors.New("Inconsistent data to inserted. Check data sent. No register saved.")
-	}
+
 	return r, err
 }
 func (o *Model) Read(where interface{}, opts interface{}) (r interface{}, err error) {
@@ -78,15 +81,16 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 		return r, err
 	}
 
-	data := SetData(inputs, o.updateSelf, DatesController{Updated: &updateDate})
-	r, err = o.conn.Update(Update{Set: data}, where, o.modelName, opts)
+	data, err := SetData(inputs, o.updateSelf, DatesController{Updated: &updateDate})
 	if err == nil {
-		cursor = r.(*mongo.Cursor)
-		instance := o.createSliceResult()
-		cursor.All(context.TODO(), &instance)
-		r = instance
+		r, err = o.conn.Update(Update{Set: data}, where, o.modelName, opts)
+		if err == nil {
+			cursor = r.(*mongo.Cursor)
+			instance := o.createSliceResult()
+			cursor.All(context.TODO(), &instance)
+			r = instance
+		}
 	}
-
 	return r, err
 }
 func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err error) {

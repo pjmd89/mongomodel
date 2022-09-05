@@ -19,6 +19,8 @@ func TestID(t *testing.T) {
 		"idPtrWithVal":   strID,
 		"idWithIDVal":    objectID,
 		"idPtrWithIDVal": objectID,
+		"map":            map[string]interface{}{"a": "b"},
+		"mapWithVal":     map[string]interface{}{"a": "b"},
 	}
 
 	result, err := testTypes.Create(userData, nil)
@@ -58,6 +60,63 @@ func TestID(t *testing.T) {
 		t.Fatal("IdPtrOutVal no se guardo correctamente")
 	}
 }
+func TestNilData(t *testing.T) {
+	db := tests.CreateDB()
+	testTypes := tests.TestTypes{}
+	testTypes.Init(tests.TestTypes{}, db)
+	_, err := testTypes.Create(nil, nil)
+
+	if err == nil {
+		t.Fatal("Se genero un error al crear el registro: ", err.Error())
+	} else {
+		t.Logf("Error: %v", err.Error())
+	}
+
+}
+func TestNilMap(t *testing.T) {
+	db := tests.CreateDB()
+	testTypes := tests.TestTypes{}
+	testTypes.Init(tests.TestTypes{}, db)
+	data := map[string]interface{}{}
+	_, err := testTypes.Create(data, nil)
+
+	if err == nil {
+		t.Fatal("Se genero un error al crear el registro")
+	} else {
+		t.Logf("Error: %v", err.Error())
+	}
+
+}
+func TestMap(t *testing.T) {
+	db := tests.CreateDB()
+	testTypes := tests.TestTypes{}
+	testTypes.Init(tests.TestTypes{}, db)
+	mapData := map[string]interface{}{
+		"int":    10,
+		"string": "str",
+		"bool":   true,
+	}
+	userData := map[string]interface{}{
+		"mapWithVal":    mapData,
+		"mapPtrWithVal": mapData,
+		"map":           map[string]interface{}{},
+	}
+
+	result, err := testTypes.Create(userData, nil)
+
+	if err != nil {
+		t.Fatal("Se genero un error al crear el registro: ", err.Error())
+	}
+	var testResult *tests.TestTypes = result.(*tests.TestTypes)
+
+	t.Logf("map: %v", testResult.MapWithVal)
+	if testResult.MapWithVal["int"] != 10 {
+		t.Fatal("MapWithVal no se guardo correctamente")
+	}
+	if (*testResult.MapPtrWithVal)["int"] != 10 {
+		t.Fatal("MapWithVal no se guardo correctamente")
+	}
+}
 func TestInt(t *testing.T) {
 	db := tests.CreateDB()
 	saveInt := 20
@@ -67,6 +126,8 @@ func TestInt(t *testing.T) {
 	userData := map[string]interface{}{
 		"intWithVal":    saveInt,
 		"intPtrWithVal": saveInt,
+		"map":           map[string]interface{}{},
+		"mapWithVal":    map[string]interface{}{},
 	}
 
 	result, err := Users.Create(userData, nil)
@@ -110,6 +171,8 @@ func TestString(t *testing.T) {
 	userData := map[string]interface{}{
 		"stringWithVal":    saveStr,
 		"stringPtrWithVal": saveStr,
+		"map":              map[string]interface{}{},
+		"mapWithVal":       map[string]interface{}{},
 	}
 
 	result, err := Users.Create(userData, nil)
@@ -162,6 +225,8 @@ func TestArray(t *testing.T) {
 		"arrPtrWithVal":       arrData,
 		"arrStructWithVal":    arrStructData,
 		"arrPtrStructWithVal": arrStructData,
+		"map":                 map[string]interface{}{},
+		"mapWithVal":          map[string]interface{}{},
 	}
 
 	result, err := Users.Create(userData, nil)
@@ -221,6 +286,8 @@ func TestStruct(t *testing.T) {
 	userData := map[string]interface{}{
 		"structWithVal":    structata,
 		"structPtrWithVal": structata,
+		"map":              map[string]interface{}{},
+		"mapWithVal":       map[string]interface{}{},
 	}
 
 	result, err := Users.Create(userData, nil)
@@ -264,7 +331,10 @@ func TestDate(t *testing.T) {
 	Users := tests.TestTypes{}
 	Users.Init(tests.TestTypes{}, db)
 
-	userData := map[string]interface{}{}
+	userData := map[string]interface{}{
+		"map":        map[string]interface{}{},
+		"mapWithVal": map[string]interface{}{},
+	}
 
 	result, err := Users.Create(userData, nil)
 

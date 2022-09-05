@@ -1,6 +1,7 @@
 package mongomodel
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -31,45 +32,61 @@ func SetID(model interface{}, id primitive.ObjectID) (err error) {
 	}
 	return err
 }
-func SetData(inputs map[string]interface{}, model interface{}, datesController DatesController) (r interface{}) {
+func SetData(inputs map[string]interface{}, model interface{}, datesController DatesController) (r interface{}, err error) {
 	modelType := reflect.TypeOf(model)
 	modelKind := modelType.Kind()
 
 	switch modelKind {
 	case reflect.Struct:
-		r = setStruct(inputs, model, datesController)
+		r, err = setStruct(inputs, model, datesController)
 	case reflect.Ptr:
-		r = SetData(inputs, reflect.ValueOf(model).Elem().Interface(), datesController)
+		r, err = SetData(inputs, reflect.ValueOf(model).Elem().Interface(), datesController)
 	}
-	return r
+	return r, err
 }
-func setStruct(inputs map[string]interface{}, model interface{}, datesController DatesController) interface{} {
+func setStruct(inputs map[string]interface{}, model interface{}, datesController DatesController) (r interface{}, err error) {
 	newModel := reflect.New(reflect.TypeOf(model))
-	for i := 0; i < newModel.Elem().NumField(); i++ {
-		field := newModel.Elem().Field(i)
-		fieldType := newModel.Elem().Type().Field(i)
-		fieldKind := field.Type().Kind()
-		tag := getTags(fieldType)
-		if tag.CreatedDate && datesController.Created != nil {
-			inputs[tag.Name] = *datesController.Created
-		}
-		if tag.UpdatedDate && datesController.Updated != nil {
-			inputs[tag.Name] = *datesController.Updated
-		}
-		if strings.Trim(tag.Name, " ") != "" {
-			if inputs[tag.Name] != nil {
-				setDataOn(inputs, tag, fieldKind, field, datesController)
-			} else {
-				setNilOn(tag, fieldKind, field, datesController)
+
+	switch newModel.Elem().Kind() {
+	case reflect.Map:
+		newModel.Elem().Set(reflect.ValueOf(inputs))
+		break
+	default:
+		for i := 0; i < newModel.Elem().NumField(); i++ {
+			field := newModel.Elem().Field(i)
+			fieldType := newModel.Elem().Type().Field(i)
+			fieldKind := field.Type().Kind()
+			tag := getTags(fieldType)
+			if inputs == nil {
+				err = errors.New("inputs not be nil")
+				return
+			}
+			if tag.CreatedDate && datesController.Created != nil {
+				inputs[tag.Name] = *datesController.Created
+			}
+			if tag.UpdatedDate && datesController.Updated != nil {
+				inputs[tag.Name] = *datesController.Updated
+			}
+			if strings.Trim(tag.Name, " ") != "" {
+				if inputs[tag.Name] != nil {
+					err = setDataOn(inputs, tag, fieldKind, field, datesController)
+				} else {
+					err = setNilOn(tag, fieldKind, field, datesController)
+				}
+				if err != nil {
+					newModel = reflect.New(reflect.TypeOf(model))
+					break
+				}
 			}
 		}
 	}
-	return newModel.Interface()
+	return newModel.Interface(), err
 }
-func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) {
+func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
 	switch fieldKind {
 	case reflect.Struct:
-		rField := setStruct(map[string]interface{}{}, field.Interface(), datesController)
+		var rField interface{}
+		rField, err = setStruct(map[string]interface{}{}, field.Interface(), datesController)
 		field.Set(reflect.ValueOf(rField).Elem())
 		break
 	case reflect.Ptr:
@@ -137,6 +154,7 @@ func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesContro
 		}
 		break
 	case reflect.Map:
+		err = fmt.Errorf("attribute \"%s\" Map no set nil", tag.Name)
 		break
 	case reflect.String:
 		if tag.isDefault {
@@ -192,11 +210,13 @@ func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesContro
 		}
 		break
 	}
+	return err
 }
-func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) {
+func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
 	switch fieldKind {
 	case reflect.Struct:
-		rField := setStruct(inputs[tag.Name].(map[string]interface{}), field.Interface(), datesController)
+		var rField interface{}
+		rField, err = setStruct(inputs[tag.Name].(map[string]interface{}), field.Interface(), datesController)
 		field.Set(reflect.ValueOf(rField).Elem())
 		break
 	case reflect.Ptr:
@@ -206,8 +226,9 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 		value := reflect.New(fieldType)
 		switch inputKind {
 		case reflect.Map:
+			var rField interface{}
 			mField := reflect.New(field.Type().Elem())
-			rField := setStruct(inputs[tag.Name].(map[string]interface{}), mField.Elem().Interface(), datesController)
+			rField, err = setStruct(inputs[tag.Name].(map[string]interface{}), mField.Elem().Interface(), datesController)
 			field.Set(reflect.ValueOf(rField))
 			break
 		case reflect.Array, reflect.Slice:
@@ -224,8 +245,9 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 				for i := 0; i < inputValue.Len(); i++ {
 					switch field.Type().Elem().Elem().Kind() {
 					case reflect.Struct:
+						var rField interface{}
 						mField := reflect.New(field.Type().Elem().Elem())
-						rField := setStruct(inputs[tag.Name].([]interface{})[i].(map[string]interface{}), mField.Elem().Interface(), datesController)
+						rField, err = setStruct(inputs[tag.Name].([]interface{})[i].(map[string]interface{}), mField.Elem().Interface(), datesController)
 						//newArr = reflect.Append(newArr, reflect.ValueOf(rField).Elem())
 						parseArr.Index(i).Set(reflect.ValueOf(rField).Elem())
 						break
@@ -303,8 +325,12 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 				switch reflect.TypeOf(inputs[tag.Name]).Kind() {
 				case reflect.Array, reflect.Slice:
 					for i := 0; i < parseArr.Len(); i++ {
+						var rField interface{}
 						mField := reflect.New(field.Type().Elem())
-						rField := setStruct(inputs[tag.Name].([]interface{})[i].(map[string]interface{}), mField.Elem().Interface(), datesController)
+						rField, err = setStruct(inputs[tag.Name].([]interface{})[i].(map[string]interface{}), mField.Elem().Interface(), datesController)
+						if err != nil {
+							break
+						}
 						newArr = reflect.Append(newArr, reflect.ValueOf(rField).Elem())
 					}
 					field.Set(newArr)
@@ -320,7 +346,7 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 		}
 		break
 	case reflect.Map:
-		fmt.Println("map")
+		field.Set(reflect.ValueOf(inputs[tag.Name]))
 		break
 	case reflect.String:
 		field.Set(reflect.ValueOf(inputs[tag.Name].(string)))
@@ -350,4 +376,5 @@ func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, 
 		field.Set(reflect.ValueOf(inputs[tag.Name].(bool)))
 		break
 	}
+	return err
 }

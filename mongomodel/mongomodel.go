@@ -27,7 +27,7 @@ func (o *Model) Init(m interface{}, conn dbutils.DBInterface) {
 	o.init = true
 	o.conn = conn
 	o.modelName = o.getModelName()
-	o.updateSelf = setBsonOmitTag(o.self)
+	o.updateSelf = dbutils.SetBsonOmitTag(o.self)
 }
 func (o *Model) SetDBName(dbName string) {
 	o.dbName = dbName

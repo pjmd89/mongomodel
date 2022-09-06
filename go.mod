@@ -3,7 +3,7 @@ module github.com/pjmd89/mongomodel
 go 1.19
 
 require (
-	github.com/pjmd89/goutils v0.0.0-20220827024906-c243dbcffec1
+	github.com/pjmd89/goutils v0.0.0-20220905040443-936d4bade6ac
 	go.mongodb.org/mongo-driver v1.10.1
 )
 

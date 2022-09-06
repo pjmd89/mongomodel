@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pjmd89/goutils/dbutils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -23,7 +24,7 @@ func SetID(model interface{}, id primitive.ObjectID) (err error) {
 	if isPtr {
 		for i := 0; i < modelElem.NumField(); i++ {
 			field := modelElem.Field(i)
-			tags := getTags(modelElem.Type().Field(i))
+			tags := dbutils.GetTags(modelElem.Type().Field(i))
 			if tags.IsID {
 				field.Set(reflect.ValueOf(id))
 				break
@@ -56,7 +57,7 @@ func setStruct(inputs map[string]interface{}, model interface{}, datesController
 			field := newModel.Elem().Field(i)
 			fieldType := newModel.Elem().Type().Field(i)
 			fieldKind := field.Type().Kind()
-			tag := getTags(fieldType)
+			tag := dbutils.GetTags(fieldType)
 			if inputs == nil {
 				err = errors.New("inputs not be nil")
 				return
@@ -82,7 +83,7 @@ func setStruct(inputs map[string]interface{}, model interface{}, datesController
 	}
 	return newModel.Interface(), err
 }
-func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
+func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
 	switch fieldKind {
 	case reflect.Struct:
 		var rField interface{}
@@ -92,7 +93,7 @@ func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesContro
 	case reflect.Ptr:
 		fieldType := field.Type().Elem()
 		value := reflect.New(fieldType)
-		if tag.isDefault {
+		if tag.IsDefault {
 			switch fieldType.Kind() {
 			case reflect.String:
 				value.Elem().Set(reflect.ValueOf(tag.Default))
@@ -157,54 +158,54 @@ func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesContro
 		err = fmt.Errorf("attribute \"%s\" Map no set nil", tag.Name)
 		break
 	case reflect.String:
-		if tag.isDefault {
+		if tag.IsDefault {
 			field.Set(reflect.ValueOf(tag.Default))
 		}
 		break
 	case reflect.Int:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
 			field.Set(reflect.ValueOf(int(newVal)))
 		}
 		break
 	case reflect.Int8:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
 			field.Set(reflect.ValueOf(int8(newVal)))
 		}
 		break
 	case reflect.Int16:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
 			field.Set(reflect.ValueOf(int16(newVal)))
 		}
 		break
 	case reflect.Int32:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
 			field.Set(reflect.ValueOf(int32(newVal)))
 		}
 		break
 	case reflect.Int64:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
 			field.Set(reflect.ValueOf(int(newVal)))
 		}
 		break
 	case reflect.Float32:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseFloat(tag.Default, 32)
 			field.Set(reflect.ValueOf(newVal))
 		}
 		break
 	case reflect.Float64:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseFloat(tag.Default, 64)
 			field.Set(reflect.ValueOf(newVal))
 		}
 		break
 	case reflect.Bool:
-		if tag.isDefault {
+		if tag.IsDefault {
 			newVal, _ := strconv.ParseBool(tag.Default)
 			field.Set(reflect.ValueOf(newVal))
 		}
@@ -212,7 +213,7 @@ func setNilOn(tag Tags, fieldKind reflect.Kind, field reflect.Value, datesContro
 	}
 	return err
 }
-func setDataOn(inputs map[string]interface{}, tag Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
+func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
 	switch fieldKind {
 	case reflect.Struct:
 		var rField interface{}

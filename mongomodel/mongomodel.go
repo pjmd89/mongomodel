@@ -68,7 +68,6 @@ func (o *Model) Read(where interface{}, opts interface{}) (r interface{}, err er
 	if err == nil {
 		cursor = r.(*mongo.Cursor)
 		instance := o.createSliceResult()
-		cursor.All(context.TODO(), &instance)
 		err = cursor.All(context.TODO(), &instance)
 		r = instance
 	}

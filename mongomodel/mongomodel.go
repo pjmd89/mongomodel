@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/pjmd89/goutils/dbutils"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Model struct {
-	dbutils.Model
+	dbutils.ModelInterface
 	conn       dbutils.DBInterface
 	self       interface{}
 	init       bool
@@ -108,6 +109,62 @@ func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err 
 		r = instance
 	}
 	return r, err
+}
+func (o *Model) UpdateReplace(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
+	var cursor *mongo.Cursor
+	var updateDate int64 = time.Now().Unix()
+	if o.init == false {
+		err = errors.New("Not Initialized")
+		return r, err
+	}
+
+	data, err := SetData(inputs, o.updateSelf, DatesController{Updated: &updateDate})
+	if err == nil {
+		r, err = o.conn.Update(data, where, o.modelName, opts)
+		if err == nil {
+			cursor = r.(*mongo.Cursor)
+			instance := o.createSliceResult()
+			cursor.All(context.TODO(), &instance)
+			r = instance
+		}
+	}
+	return r, err
+}
+func (o *Model) UpdateInterfaceReplace(data interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
+	var cursor *mongo.Cursor
+	if o.init == false {
+		err = errors.New("Not Initialized")
+		return r, err
+	}
+	if err == nil {
+		r, err = o.conn.Update(data, where, o.modelName, opts)
+		if err == nil {
+			cursor = r.(*mongo.Cursor)
+			instance := o.createSliceResult()
+			cursor.All(context.TODO(), &instance)
+			r = instance
+		}
+	}
+	return r, err
+}
+func (o *Model) Repare() (r bool, err error) {
+	var result interface{}
+	if o.init == false {
+		err = errors.New("Not Initialized")
+		return
+	}
+	result, err = o.conn.Read(nil, o.modelName, nil)
+	if err != nil {
+		return
+	}
+	cursor := result.(*mongo.Cursor)
+	instance := []bson.M{}
+	err = cursor.All(context.TODO(), &instance)
+	if err != nil {
+		return
+	}
+	err = o.RepareData(o.self, instance)
+	return
 }
 func (o *Model) Count(where interface{}, opts interface{}) (r int64, err error) {
 	var count interface{}

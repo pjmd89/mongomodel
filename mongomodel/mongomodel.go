@@ -62,7 +62,7 @@ func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r inter
 func (o *Model) Read(where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	if o.init == false {
-		err = errors.New("Not Initialized")
+		err = errors.New("DB not initialized")
 		return r, err
 	}
 	r, err = o.conn.Read(where, o.modelName, opts)
@@ -78,7 +78,7 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 	var cursor *mongo.Cursor
 	var updateDate int64 = time.Now().Unix()
 	if o.init == false {
-		err = errors.New("Not Initialized")
+		err = errors.New("DB not initialized")
 		return r, err
 	}
 
@@ -97,7 +97,7 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	if o.init == false {
-		err = errors.New("Not Initialized")
+		err = errors.New("DB not initialized")
 		return r, err
 	}
 
@@ -110,17 +110,17 @@ func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err 
 	}
 	return r, err
 }
-func (o *Model) UpdateReplace(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
+func (o *Model) Replace(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	var updateDate int64 = time.Now().Unix()
 	if o.init == false {
-		err = errors.New("Not Initialized")
+		err = errors.New("DB not initialized")
 		return r, err
 	}
 
 	data, err := SetData(inputs, o.updateSelf, DatesController{Updated: &updateDate})
 	if err == nil {
-		r, err = o.conn.Update(data, where, o.modelName, opts)
+		r, err = o.conn.Replace(data, where, o.modelName, opts)
 		if err == nil {
 			cursor = r.(*mongo.Cursor)
 			instance := o.createSliceResult()
@@ -130,14 +130,32 @@ func (o *Model) UpdateReplace(inputs map[string]interface{}, where interface{}, 
 	}
 	return r, err
 }
-func (o *Model) UpdateInterfaceReplace(data interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
+func (o *Model) InterfaceUpdate(inputs interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	if o.init == false {
-		err = errors.New("Not Initialized")
+		err = errors.New("DB not initialized")
+		return r, err
+	}
+
+	if err == nil {
+		r, err = o.conn.Update(Update{Set: inputs}, where, o.modelName, opts)
+		if err == nil {
+			cursor = r.(*mongo.Cursor)
+			instance := o.createSliceResult()
+			cursor.All(context.TODO(), &instance)
+			r = instance
+		}
+	}
+	return r, err
+}
+func (o *Model) InterfaceReplace(data interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
+	var cursor *mongo.Cursor
+	if o.init == false {
+		err = errors.New("DB not initialized")
 		return r, err
 	}
 	if err == nil {
-		r, err = o.conn.Update(data, where, o.modelName, opts)
+		r, err = o.conn.Replace(data, where, o.modelName, opts)
 		if err == nil {
 			cursor = r.(*mongo.Cursor)
 			instance := o.createSliceResult()
@@ -150,7 +168,7 @@ func (o *Model) UpdateInterfaceReplace(data interface{}, where interface{}, opts
 func (o *Model) Repare() (r bool, err error) {
 	var result interface{}
 	if o.init == false {
-		err = errors.New("Not Initialized")
+		err = errors.New("DB not initialized")
 		return
 	}
 	result, err = o.conn.Read(nil, o.modelName, nil)
@@ -169,7 +187,7 @@ func (o *Model) Repare() (r bool, err error) {
 func (o *Model) Count(where interface{}, opts interface{}) (r int64, err error) {
 	var count interface{}
 	if o.init == false {
-		err = errors.New("Not Initialized")
+		err = errors.New("DB not initialized")
 		return r, err
 	}
 	count, err = o.conn.Count(where, o.modelName, opts)

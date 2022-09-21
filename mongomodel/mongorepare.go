@@ -7,28 +7,33 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pjmd89/goutils/dbutils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func (o *Model) RepareData(self any, data []bson.M) (err error) {
-	rType := reflect.TypeOf(self)
-
+func (o *Model) RepareData(self any, data []bson.M, scalarIdType interface{}) (err error) {
+	fmt.Println(reflect.TypeOf(self))
+	xd := dbutils.CreateStruct(self, scalarIdType, primitive.ObjectID{}, false)
+	rType := reflect.TypeOf(xd)
 	for _, v := range data {
 		instance := reflect.New(rType)
 		for i := 0; i < rType.NumField(); i++ {
 			typedField := rType.Field(i)
-			//tags := dbutils.GetTags(typedField)
+			gqlTags := dbutils.GetTags(typedField)
 			bsonTagString := typedField.Tag.Get("bson")
 			tags := strings.Split(bsonTagString, ",")
-			if v[tags[0]] != nil && strings.Trim(bsonTagString, " ") != "-" {
+			if tags[0] == "_id" {
+				typedField.Tag = reflect.StructTag("`bson:\"-\"`")
+			}
+			if tags[0] != "_id" && v[tags[0]] != nil && strings.Trim(bsonTagString, " ") != "-" {
 				switch typedField.Type.Kind() {
 				case reflect.Struct:
 					o.repareStruct(instance, typedField.Name, v[tags[0]])
 				case reflect.Ptr:
 					o.reparePtr(instance, typedField.Name, v[tags[0]])
 				case reflect.Array, reflect.Slice:
-					o.repareSlice(instance, typedField.Name, v[tags[0]])
+					o.repareSlice(instance, typedField.Name, v[tags[0]], gqlTags)
 				case reflect.Map:
 					o.repareMap(instance, typedField.Name, v[tags[0]])
 				case reflect.String:
@@ -60,19 +65,25 @@ func (o *Model) repareStruct(value reflect.Value, fieldName string, data any) (r
 }
 func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	rValue := value.Elem().FieldByName(fieldName)
-	sData := reflect.ValueOf(fmt.Sprintf("%v", data))
+	var sData reflect.Value
+	switch data.(type) {
+	case primitive.ObjectID:
+		sData = reflect.ValueOf(data)
+	default:
+		sData = reflect.ValueOf(fmt.Sprintf("%v", data))
+	}
+
 	rValue.Set(sData.Convert(rValue.Type()))
 	return
 }
-func (o *Model) repareSlice(value reflect.Value, fieldName string, data any) (r reflect.Value) {
+func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags) (r reflect.Value) {
 	parse := value.Elem().FieldByName(fieldName)
-
-	switch parse.Type() {
-	case reflect.TypeOf(primitive.ObjectID{}):
-		dataVal := fmt.Sprintf("%v", data)
-		id, _ := primitive.ObjectIDFromHex(dataVal)
-		parse.Set(reflect.ValueOf(id))
-		return
+	var sData reflect.Value
+	switch tags.IsID {
+	case true:
+		//parse.Type() = reflect.TypeOf(primitive.ObjectID{})
+		sData = reflect.ValueOf(data)
+		parse.Set(sData.Convert(parse.Type()))
 	default:
 		fmt.Println("")
 	}

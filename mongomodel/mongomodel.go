@@ -21,14 +21,16 @@ type Model struct {
 	modelName  string
 	dbName     string
 	updateSelf interface{}
+	scalarId   interface{}
 }
 
-func (o *Model) Init(m interface{}, conn dbutils.DBInterface) {
+func (o *Model) Init(m interface{}, conn dbutils.DBInterface, scalarId interface{}) {
 	o.self = m
 	o.init = true
 	o.conn = conn
 	o.modelName = o.getModelName()
-	o.updateSelf = dbutils.SetBsonOmitTag(o.self)
+	o.scalarId = scalarId
+	o.updateSelf = dbutils.CreateStruct(o.self, scalarId, primitive.ObjectID{}, true)
 }
 func (o *Model) SetDBName(dbName string) {
 	o.dbName = dbName
@@ -165,7 +167,7 @@ func (o *Model) InterfaceReplace(data interface{}, where interface{}, opts inter
 	}
 	return r, err
 }
-func (o *Model) Repare() (r bool, err error) {
+func (o *Model) Repare(idType interface{}) (r bool, err error) {
 	var result interface{}
 	if o.init == false {
 		err = errors.New("DB not initialized")
@@ -181,7 +183,7 @@ func (o *Model) Repare() (r bool, err error) {
 	if err != nil {
 		return
 	}
-	err = o.RepareData(o.self, instance)
+	err = o.RepareData(o.self, instance, o.scalarId)
 	return
 }
 func (o *Model) Count(where interface{}, opts interface{}) (r int64, err error) {

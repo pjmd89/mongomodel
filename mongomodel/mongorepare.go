@@ -48,6 +48,8 @@ func (o *Model) RepareData(self any, data []bson.M, scalarIdType interface{}) (e
 			}
 		}
 		x := instance.Interface()
+		///*
+
 		where := map[string]interface{}{
 			"_id": v["_id"],
 		}
@@ -55,7 +57,7 @@ func (o *Model) RepareData(self any, data []bson.M, scalarIdType interface{}) (e
 		if err != nil {
 			log.Println(err.Error())
 		}
-		//fmt.Println(x)
+		//*/
 	}
 	return
 }
@@ -78,16 +80,35 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 }
 func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags) (r reflect.Value) {
 	parse := value.Elem().FieldByName(fieldName)
-	var sData reflect.Value
-	switch tags.IsID {
-	case true:
-		//parse.Type() = reflect.TypeOf(primitive.ObjectID{})
-		sData = reflect.ValueOf(data)
-		parse.Set(sData.Convert(parse.Type()))
+	var sData reflect.Value = reflect.ValueOf(data)
+	switch parse.Type() {
+	case reflect.TypeOf(primitive.ObjectID{}):
+		switch vData := data.(type) {
+		case primitive.ObjectID:
+			parse.Set(sData)
+		case string:
+			nId, _ := primitive.ObjectIDFromHex(vData)
+			parse.Set(reflect.ValueOf(nId))
+		}
 	default:
-		fmt.Println("")
+		vData := reflect.ValueOf(data)
+		switch parse.Type().Elem() {
+		case reflect.TypeOf(primitive.ObjectID{}):
+			var idContainers []primitive.ObjectID
+			for i := 0; i < vData.Len(); i++ {
+				var idData primitive.ObjectID
+				switch iData := vData.Index(i).Interface().(type) {
+				case primitive.ObjectID:
+					idData = iData
+				case string:
+					idData, _ = primitive.ObjectIDFromHex(iData)
+				}
+				idContainers = append(idContainers, idData)
+			}
+		default:
+			parse.Set(vData)
+		}
 	}
-
 	return
 }
 func (o *Model) reparePtr(value reflect.Value, fieldName string, data any) (r reflect.Value) {

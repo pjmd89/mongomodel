@@ -13,7 +13,6 @@ import (
 )
 
 func (o *Model) RepareData(self any, data []bson.M, scalarIdType interface{}) (err error) {
-	fmt.Println(reflect.TypeOf(self))
 	xd := dbutils.CreateStruct(self, scalarIdType, primitive.ObjectID{}, false)
 	rType := reflect.TypeOf(xd)
 	for _, v := range data {
@@ -48,8 +47,6 @@ func (o *Model) RepareData(self any, data []bson.M, scalarIdType interface{}) (e
 			}
 		}
 		x := instance.Interface()
-		///*
-
 		where := map[string]interface{}{
 			"_id": v["_id"],
 		}
@@ -57,7 +54,6 @@ func (o *Model) RepareData(self any, data []bson.M, scalarIdType interface{}) (e
 		if err != nil {
 			log.Println(err.Error())
 		}
-		//*/
 	}
 	return
 }
@@ -105,8 +101,17 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 				}
 				idContainers = append(idContainers, idData)
 			}
+			parse.Set(reflect.ValueOf(idContainers))
+		case reflect.TypeOf(""):
+			var iContainers []string
+			for i := 0; i < vData.Len(); i++ {
+				iContainers = append(iContainers, vData.Index(i).Interface().(string))
+			}
+			parse.Set(reflect.ValueOf(iContainers))
 		default:
-			parse.Set(vData)
+			for i := 0; i < vData.Len(); i++ {
+				parse.Set(reflect.Append(parse, vData.Index(i)))
+			}
 		}
 	}
 	return

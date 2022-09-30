@@ -21,15 +21,13 @@ type Model struct {
 	modelName  string
 	dbName     string
 	updateSelf interface{}
-	scalarId   interface{}
 }
 
-func (o *Model) Init(m interface{}, conn dbutils.DBInterface, scalarId interface{}) {
+func (o *Model) Init(m interface{}, conn dbutils.DBInterface) {
 	o.self = m
 	o.init = true
 	o.conn = conn
 	o.modelName = o.getModelName()
-	o.scalarId = scalarId
 	o.updateSelf = dbutils.CreateStruct(o.self, true)
 }
 func (o *Model) SetDBName(dbName string) {

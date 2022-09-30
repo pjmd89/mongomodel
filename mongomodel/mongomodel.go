@@ -30,7 +30,7 @@ func (o *Model) Init(m interface{}, conn dbutils.DBInterface, scalarId interface
 	o.conn = conn
 	o.modelName = o.getModelName()
 	o.scalarId = scalarId
-	o.updateSelf = dbutils.CreateStruct(o.self, scalarId, primitive.ObjectID{}, true)
+	o.updateSelf = dbutils.CreateStruct(o.self, true)
 }
 func (o *Model) SetDBName(dbName string) {
 	o.dbName = dbName
@@ -183,7 +183,7 @@ func (o *Model) Repare(idType interface{}) (r bool, err error) {
 	if err != nil {
 		return
 	}
-	err = o.RepareData(o.self, instance, o.scalarId)
+	err = o.RepareData(o.self, instance)
 	return
 }
 func (o *Model) Count(where interface{}, opts interface{}) (r int64, err error) {

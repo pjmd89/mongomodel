@@ -12,54 +12,54 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func (o *Model) RepareData(self any, data []bson.M, scalarIdType interface{}) (err error) {
-	xd := dbutils.CreateStruct(self, scalarIdType, primitive.ObjectID{}, false)
+func (o *Model) RepareData(self any, data []bson.M) (err error) {
+	xd := dbutils.CreateStruct(self, false)
 	rType := reflect.TypeOf(xd)
 	for _, v := range data {
-		instance := reflect.New(rType)
-		for i := 0; i < rType.NumField(); i++ {
-			typedField := rType.Field(i)
-			gqlTags := dbutils.GetTags(typedField)
-			bsonTagString := typedField.Tag.Get("bson")
-			tags := strings.Split(bsonTagString, ",")
-			if tags[0] == "_id" {
-				typedField.Tag = reflect.StructTag("`bson:\"-\"`")
-			}
-			if tags[0] != "_id" && v[tags[0]] != nil && strings.Trim(bsonTagString, " ") != "-" {
-				switch typedField.Type.Kind() {
-				case reflect.Struct:
-					o.repareStruct(instance, typedField.Name, v[tags[0]])
-				case reflect.Ptr:
-					o.reparePtr(instance, typedField.Name, v[tags[0]])
-				case reflect.Array, reflect.Slice:
-					o.repareSlice(instance, typedField.Name, v[tags[0]], gqlTags)
-				case reflect.Map:
-					o.repareMap(instance, typedField.Name, v[tags[0]])
-				case reflect.String:
-					o.repareString(instance, typedField.Name, v[tags[0]])
-				case reflect.Bool:
-					o.repareBool(instance, typedField.Name, v[tags[0]])
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					o.repareInt(instance, typedField.Name, v[tags[0]])
-				case reflect.Float32, reflect.Float64:
-					o.repareFloat(instance, typedField.Name, v[tags[0]])
-				}
-			}
-		}
-		x := instance.Interface()
+		x := o.repareStruct(rType, v)
 		where := map[string]interface{}{
 			"_id": v["_id"],
 		}
-		_, err := o.InterfaceUpdate(x, where, nil)
+		_, err := o.InterfaceReplace(x.Interface(), where, nil)
 		if err != nil {
 			log.Println(err.Error())
 		}
+
 	}
 	return
 }
-func (o *Model) repareStruct(value reflect.Value, fieldName string, data any) (r reflect.Value) {
-
-	return
+func (o *Model) repareStruct(rType reflect.Type, v bson.M) (r reflect.Value) {
+	instance := reflect.New(rType)
+	for i := 0; i < rType.NumField(); i++ {
+		typedField := rType.Field(i)
+		gqlTags := dbutils.GetTags(typedField)
+		bsonTagString := typedField.Tag.Get("bson")
+		tags := strings.Split(bsonTagString, ",")
+		if tags[0] == "_id" {
+			typedField.Tag = reflect.StructTag("`bson:\"-\"`")
+		}
+		if tags[0] != "_id" && v[tags[0]] != nil && strings.Trim(bsonTagString, " ") != "-" {
+			switch typedField.Type.Kind() {
+			case reflect.Struct:
+				//o.repareStruct(instance, typedField.Name, v[tags[0]])
+			case reflect.Ptr:
+				o.reparePtr(instance, typedField.Name, v[tags[0]])
+			case reflect.Array, reflect.Slice:
+				o.repareSlice(instance, typedField.Name, v[tags[0]], gqlTags)
+			case reflect.Map:
+				o.repareMap(instance, typedField.Name, v[tags[0]])
+			case reflect.String:
+				o.repareString(instance, typedField.Name, v[tags[0]])
+			case reflect.Bool:
+				o.repareBool(instance, typedField.Name, v[tags[0]])
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				o.repareInt(instance, typedField.Name, v[tags[0]])
+			case reflect.Float32, reflect.Float64:
+				o.repareFloat(instance, typedField.Name, v[tags[0]])
+			}
+		}
+	}
+	return instance.Elem()
 }
 func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	rValue := value.Elem().FieldByName(fieldName)
@@ -77,6 +77,9 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags) (r reflect.Value) {
 	parse := value.Elem().FieldByName(fieldName)
 	var sData reflect.Value = reflect.ValueOf(data)
+	if fieldName == "Fields" {
+		fmt.Println(fieldName)
+	}
 	switch parse.Type() {
 	case reflect.TypeOf(primitive.ObjectID{}):
 		switch vData := data.(type) {
@@ -110,7 +113,13 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 			parse.Set(reflect.ValueOf(iContainers))
 		default:
 			for i := 0; i < vData.Len(); i++ {
-				parse.Set(reflect.Append(parse, vData.Index(i)))
+				x := parse.Type().Elem().Kind()
+				switch x {
+				case reflect.Struct:
+					parse.Set(reflect.Append(parse, o.repareStruct(parse.Type().Elem(), vData.Index(i).Interface().(bson.M))))
+				default:
+					parse.Set(reflect.Append(parse, vData.Index(i)))
+				}
 			}
 		}
 	}

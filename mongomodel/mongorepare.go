@@ -2,7 +2,6 @@ package mongomodel
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -16,50 +15,82 @@ func (o *Model) RepareData(self any, data []bson.M) (err error) {
 	xd := dbutils.CreateStruct(self, false)
 	rType := reflect.TypeOf(xd)
 	for _, v := range data {
-		x := o.repareStruct(rType, v)
-		where := map[string]interface{}{
-			"_id": v["_id"],
-		}
-		_, err := o.InterfaceReplace(x.Interface(), where, nil)
-		if err != nil {
-			log.Println(err.Error())
-		}
+		o.repareStruct(rType, v)
+		/*
+			x := o.repareStruct(rType, v)
+			where := map[string]interface{}{
+				"_id": v["_id"],
+			}
+			_, err := o.InterfaceReplace(x.Interface(), where, nil)
+			if err != nil {
+				log.Println(err.Error())
+			}
+		*/
 
 	}
 	return
 }
+func (o *Model) parseField(typedField reflect.StructField, instance reflect.Value, v bson.M) {
+
+	gqlTags := dbutils.GetTags(typedField)
+	bsonTagString := typedField.Tag.Get("bson")
+	tags := strings.Split(bsonTagString, ",")
+	if tags[0] == "_id" {
+		typedField.Tag = reflect.StructTag("`bson:\"-\"`")
+	}
+	if tags[0] == "state" {
+		fmt.Println("asd")
+	}
+	if tags[0] != "_id" && strings.Trim(bsonTagString, " ") != "-" {
+		switch typedField.Type.Kind() {
+		case reflect.Struct:
+			o.repareStruct(instance.Type(), v[tags[0]].(bson.M))
+		case reflect.Ptr:
+			o.reparePtr(instance, typedField.Name, v[tags[0]])
+		case reflect.Array, reflect.Slice:
+			o.repareSlice(instance, typedField.Name, v[tags[0]], gqlTags)
+		case reflect.Map:
+			o.repareMap(instance, typedField.Name, v[tags[0]])
+		case reflect.String:
+			o.repareString(instance, typedField.Name, v[tags[0]])
+		case reflect.Bool:
+			o.repareBool(instance, typedField.Name, v[tags[0]])
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			o.repareInt(instance, typedField.Name, v[tags[0]])
+		case reflect.Float32, reflect.Float64:
+			o.repareFloat(instance, typedField.Name, v[tags[0]])
+		}
+	}
+}
 func (o *Model) repareStruct(rType reflect.Type, v bson.M) (r reflect.Value) {
 	instance := reflect.New(rType)
 	for i := 0; i < rType.NumField(); i++ {
-		typedField := rType.Field(i)
-		gqlTags := dbutils.GetTags(typedField)
-		bsonTagString := typedField.Tag.Get("bson")
-		tags := strings.Split(bsonTagString, ",")
-		if tags[0] == "_id" {
-			typedField.Tag = reflect.StructTag("`bson:\"-\"`")
-		}
-		if tags[0] != "_id" && v[tags[0]] != nil && strings.Trim(bsonTagString, " ") != "-" {
-			switch typedField.Type.Kind() {
-			case reflect.Struct:
-				//o.repareStruct(instance, typedField.Name, v[tags[0]])
-			case reflect.Ptr:
-				o.reparePtr(instance, typedField.Name, v[tags[0]])
-			case reflect.Array, reflect.Slice:
-				o.repareSlice(instance, typedField.Name, v[tags[0]], gqlTags)
-			case reflect.Map:
-				o.repareMap(instance, typedField.Name, v[tags[0]])
-			case reflect.String:
-				o.repareString(instance, typedField.Name, v[tags[0]])
-			case reflect.Bool:
-				o.repareBool(instance, typedField.Name, v[tags[0]])
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				o.repareInt(instance, typedField.Name, v[tags[0]])
-			case reflect.Float32, reflect.Float64:
-				o.repareFloat(instance, typedField.Name, v[tags[0]])
-			}
-		}
+		o.parseField(rType.Field(i), instance, v)
 	}
 	return instance.Elem()
+}
+func (o *Model) parsePtr(typedField reflect.StructField, instance reflect.Value, v any) {
+
+	switch typedField.Type.Kind() {
+	case reflect.Struct:
+		switch v.(type) {
+		case bson.M:
+			o.repareStruct(instance.Type(), v.(bson.M))
+		}
+	case reflect.Array, reflect.Slice:
+		gqlTags := dbutils.GetTags(typedField)
+		o.repareSlice(instance, typedField.Name, v, gqlTags)
+	case reflect.Map:
+		o.repareMap(instance, typedField.Name, v)
+	case reflect.String:
+		o.repareString(instance, typedField.Name, v)
+	case reflect.Bool:
+		o.repareBool(instance, typedField.Name, v)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		o.repareInt(instance, typedField.Name, v)
+	case reflect.Float32, reflect.Float64:
+		o.repareFloat(instance, typedField.Name, v)
+	}
 }
 func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	rValue := value.Elem().FieldByName(fieldName)
@@ -77,22 +108,22 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags) (r reflect.Value) {
 	parse := value.Elem().FieldByName(fieldName)
 	var sData reflect.Value = reflect.ValueOf(data)
-	if fieldName == "Fields" {
-		fmt.Println(fieldName)
-	}
-	switch parse.Type() {
-	case reflect.TypeOf(primitive.ObjectID{}):
+	switch parse.Interface().(type) {
+	case primitive.ObjectID:
 		switch vData := data.(type) {
 		case primitive.ObjectID:
 			parse.Set(sData)
 		case string:
+			if fieldName == "state" {
+				fmt.Println("x")
+			}
 			nId, _ := primitive.ObjectIDFromHex(vData)
 			parse.Set(reflect.ValueOf(nId))
 		}
 	default:
 		vData := reflect.ValueOf(data)
-		switch parse.Type().Elem() {
-		case reflect.TypeOf(primitive.ObjectID{}):
+		switch parse.Elem().Interface().(type) {
+		case primitive.ObjectID:
 			var idContainers []primitive.ObjectID
 			for i := 0; i < vData.Len(); i++ {
 				var idData primitive.ObjectID
@@ -105,14 +136,18 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 				idContainers = append(idContainers, idData)
 			}
 			parse.Set(reflect.ValueOf(idContainers))
-		case reflect.TypeOf(""):
-			var iContainers []string
+		case string:
+			iContainers := make([]string, 0, 0)
 			for i := 0; i < vData.Len(); i++ {
 				iContainers = append(iContainers, vData.Index(i).Interface().(string))
 			}
 			parse.Set(reflect.ValueOf(iContainers))
 		default:
-			for i := 0; i < vData.Len(); i++ {
+			count := 0
+			if !vData.IsNil() {
+				count = vData.Len()
+			}
+			for i := 0; i < count; i++ {
 				x := parse.Type().Elem().Kind()
 				switch x {
 				case reflect.Struct:
@@ -126,8 +161,9 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 	return
 }
 func (o *Model) reparePtr(value reflect.Value, fieldName string, data any) (r reflect.Value) {
-	if !value.IsNil() {
-
+	instance := value.Type().Elem().Field(0)
+	if data != nil {
+		o.parsePtr(instance, value.Elem(), data)
 	}
 	return
 }

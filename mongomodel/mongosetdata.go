@@ -94,49 +94,59 @@ func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, dat
 		fieldType := field.Type().Elem()
 		value := reflect.New(fieldType)
 		if tag.IsDefault {
+			rType := value.Elem().Type()
 			switch fieldType.Kind() {
 			case reflect.String:
-				value.Elem().Set(reflect.ValueOf(tag.Default))
+				rValue := reflect.ValueOf(tag.Default)
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Int:
 				newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-				value.Elem().Set(reflect.ValueOf(int(newVal)))
+				rValue := reflect.ValueOf(int(newVal))
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Int8:
 				newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-				value.Elem().Set(reflect.ValueOf(int8(newVal)))
+				rValue := reflect.ValueOf(int8(newVal))
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Int16:
 				newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-				value.Elem().Set(reflect.ValueOf(int16(newVal)))
+				rValue := reflect.ValueOf(int16(newVal))
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Int32:
 				newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-				value.Elem().Set(reflect.ValueOf(int32(newVal)))
+				rValue := reflect.ValueOf(int32(newVal))
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Int64:
 				newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-				value.Elem().Set(reflect.ValueOf(int(newVal)))
+				rValue := reflect.ValueOf(newVal)
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Float32:
 				newVal, _ := strconv.ParseFloat(tag.Default, 32)
-				value.Elem().Set(reflect.ValueOf(newVal))
+				rValue := reflect.ValueOf(newVal)
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Float64:
 				newVal, _ := strconv.ParseFloat(tag.Default, 64)
-				value.Elem().Set(reflect.ValueOf(newVal))
+				rValue := reflect.ValueOf(newVal)
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			case reflect.Bool:
 				newVal, _ := strconv.ParseBool(tag.Default)
-				value.Elem().Set(reflect.ValueOf(newVal))
+				rValue := reflect.ValueOf(newVal)
+				value.Elem().Set(rValue.Convert(rType))
 				field.Set(value)
 				break
 			}

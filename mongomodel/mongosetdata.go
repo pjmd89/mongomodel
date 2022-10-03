@@ -84,6 +84,7 @@ func setStruct(inputs map[string]interface{}, model interface{}, datesController
 	return newModel.Interface(), err
 }
 func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
+	rType := field.Type()
 	switch fieldKind {
 	case reflect.Struct:
 		var rField interface{}
@@ -94,7 +95,7 @@ func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, dat
 		fieldType := field.Type().Elem()
 		value := reflect.New(fieldType)
 		if tag.IsDefault {
-			rType := value.Elem().Type()
+			rType = value.Elem().Type()
 			switch fieldType.Kind() {
 			case reflect.String:
 				rValue := reflect.ValueOf(tag.Default)
@@ -169,61 +170,71 @@ func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, dat
 		break
 	case reflect.String:
 		if tag.IsDefault {
-			field.Set(reflect.ValueOf(tag.Default))
+			rValue := reflect.ValueOf(tag.Default)
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Int:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-			field.Set(reflect.ValueOf(int(newVal)))
+			rValue := reflect.ValueOf(int(newVal))
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Int8:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-			field.Set(reflect.ValueOf(int8(newVal)))
+			rValue := reflect.ValueOf(int8(newVal))
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Int16:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-			field.Set(reflect.ValueOf(int16(newVal)))
+			rValue := reflect.ValueOf(int16(newVal))
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Int32:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-			field.Set(reflect.ValueOf(int32(newVal)))
+			rValue := reflect.ValueOf(int32(newVal))
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Int64:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseInt(tag.Default, 10, 64)
-			field.Set(reflect.ValueOf(int(newVal)))
+			rValue := reflect.ValueOf(int64(newVal))
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Float32:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseFloat(tag.Default, 32)
-			field.Set(reflect.ValueOf(newVal))
+			rValue := reflect.ValueOf(newVal)
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Float64:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseFloat(tag.Default, 64)
-			field.Set(reflect.ValueOf(newVal))
+			rValue := reflect.ValueOf(newVal)
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	case reflect.Bool:
 		if tag.IsDefault {
 			newVal, _ := strconv.ParseBool(tag.Default)
-			field.Set(reflect.ValueOf(newVal))
+			rValue := reflect.ValueOf(newVal)
+			field.Set(rValue.Convert(rType))
 		}
 		break
 	}
 	return err
 }
 func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
+	rType := field.Type()
 	switch fieldKind {
 	case reflect.Struct:
 		var rField interface{}
@@ -279,37 +290,45 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 				newID, _ := primitive.ObjectIDFromHex(inputs[tag.Name].(string))
 				value.Elem().Set(reflect.ValueOf(newID))
 			} else {
-				value.Elem().Set(reflect.ValueOf(inputs[tag.Name].(string)))
+				rValue := reflect.ValueOf(inputs[tag.Name].(string))
+				value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			}
 
 			field.Set(value)
 			break
 		case reflect.Int:
-			value.Elem().Set(reflect.ValueOf(int(inputs[tag.Name].(int))))
+			rValue := reflect.ValueOf(int(inputs[tag.Name].(int)))
+			value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			field.Set(value)
 			break
 		case reflect.Int8:
-			value.Elem().Set(reflect.ValueOf(int8(inputs[tag.Name].(int))))
+			rValue := reflect.ValueOf(int8(inputs[tag.Name].(int8)))
+			value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			field.Set(value)
 			break
 		case reflect.Int16:
-			value.Elem().Set(reflect.ValueOf(int16(inputs[tag.Name].(int))))
+			rValue := reflect.ValueOf(int16(inputs[tag.Name].(int16)))
+			value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			field.Set(value)
 			break
 		case reflect.Int32:
-			value.Elem().Set(reflect.ValueOf(int32(inputs[tag.Name].(int))))
+			rValue := reflect.ValueOf(int32(inputs[tag.Name].(int32)))
+			value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			field.Set(value)
 			break
 		case reflect.Int64:
-			value.Elem().Set(reflect.ValueOf(int64(inputs[tag.Name].(int64))))
+			rValue := reflect.ValueOf(int64(inputs[tag.Name].(int64)))
+			value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			field.Set(value)
 			break
 		case reflect.Float32:
-			value.Elem().Set(reflect.ValueOf(float32(int(inputs[tag.Name].(float32)))))
+			rValue := reflect.ValueOf(float32(int(inputs[tag.Name].(float32))))
+			value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			field.Set(value)
 			break
 		case reflect.Float64:
-			value.Elem().Set(reflect.ValueOf(int(inputs[tag.Name].(float64))))
+			rValue := reflect.ValueOf(float64(int(inputs[tag.Name].(float64))))
+			value.Elem().Set(reflect.ValueOf(rValue.Convert(rType)))
 			field.Set(value)
 			break
 		case reflect.Bool:
@@ -360,31 +379,40 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 		field.Set(reflect.ValueOf(inputs[tag.Name]))
 		break
 	case reflect.String:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(string)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(string))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Int:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(int)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(int))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Int8:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(int8)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(int8))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Int16:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(int16)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(int16))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Int32:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(int32)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(int32))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Int64:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(int64)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(int64))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Float32:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(float32)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(float32))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Float64:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(float64)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(float64))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	case reflect.Bool:
-		field.Set(reflect.ValueOf(inputs[tag.Name].(bool)))
+		rValue := reflect.ValueOf(inputs[tag.Name].(bool))
+		field.Set(reflect.ValueOf(rValue.Convert(rType)))
 		break
 	}
 	return err

@@ -2,6 +2,7 @@ package mongomodel
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -15,17 +16,17 @@ func (o *Model) RepareData(self any, data []bson.M) (err error) {
 	xd := dbutils.CreateStruct(self, false)
 	rType := reflect.TypeOf(xd)
 	for _, v := range data {
-		o.repareStruct(rType, v)
-		/*
-			x := o.repareStruct(rType, v)
-			where := map[string]interface{}{
-				"_id": v["_id"],
-			}
-			_, err := o.InterfaceReplace(x.Interface(), where, nil)
-			if err != nil {
-				log.Println(err.Error())
-			}
-		*/
+		//o.repareStruct(rType, v)
+		///*
+		x := o.repareStruct(rType, v)
+		where := map[string]interface{}{
+			"_id": v["_id"],
+		}
+		_, err := o.InterfaceReplace(x.Interface(), where, nil)
+		if err != nil {
+			log.Println(err.Error())
+		}
+		//*/
 
 	}
 	return
@@ -37,9 +38,6 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 	tags := strings.Split(bsonTagString, ",")
 	if tags[0] == "_id" {
 		typedField.Tag = reflect.StructTag("`bson:\"-\"`")
-	}
-	if tags[0] == "state" {
-		fmt.Println("asd")
 	}
 	if tags[0] != "_id" && strings.Trim(bsonTagString, " ") != "-" {
 		switch typedField.Type.Kind() {
@@ -110,24 +108,22 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 	var sData reflect.Value = reflect.ValueOf(data)
 	switch parse.Interface().(type) {
 	case primitive.ObjectID:
-		switch vData := data.(type) {
+		switch vxData := data.(type) {
 		case primitive.ObjectID:
 			parse.Set(sData)
 		case string:
-			if fieldName == "state" {
-				fmt.Println("x")
-			}
-			nId, _ := primitive.ObjectIDFromHex(vData)
+			nId, _ := primitive.ObjectIDFromHex(vxData)
 			parse.Set(reflect.ValueOf(nId))
 		}
 	default:
-		vData := reflect.ValueOf(data)
-		switch parse.Elem().Interface().(type) {
+		//vData := reflect.ValueOf(data)
+		newx := reflect.New(parse.Type().Elem()).Elem()
+		switch newx.Interface().(type) {
 		case primitive.ObjectID:
 			var idContainers []primitive.ObjectID
-			for i := 0; i < vData.Len(); i++ {
+			for i := 0; i < sData.Len(); i++ {
 				var idData primitive.ObjectID
-				switch iData := vData.Index(i).Interface().(type) {
+				switch iData := sData.Index(i).Interface().(type) {
 				case primitive.ObjectID:
 					idData = iData
 				case string:
@@ -138,22 +134,25 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 			parse.Set(reflect.ValueOf(idContainers))
 		case string:
 			iContainers := make([]string, 0, 0)
-			for i := 0; i < vData.Len(); i++ {
-				iContainers = append(iContainers, vData.Index(i).Interface().(string))
+			if data != nil && !sData.IsNil() {
+				for i := 0; i < sData.Len(); i++ {
+					iContainers = append(iContainers, sData.Index(i).Interface().(string))
+				}
 			}
+
 			parse.Set(reflect.ValueOf(iContainers))
 		default:
 			count := 0
-			if !vData.IsNil() {
-				count = vData.Len()
+			if data != nil && !sData.IsNil() {
+				count = sData.Len()
 			}
 			for i := 0; i < count; i++ {
 				x := parse.Type().Elem().Kind()
 				switch x {
 				case reflect.Struct:
-					parse.Set(reflect.Append(parse, o.repareStruct(parse.Type().Elem(), vData.Index(i).Interface().(bson.M))))
+					parse.Set(reflect.Append(parse, o.repareStruct(parse.Type().Elem(), sData.Index(i).Interface().(bson.M))))
 				default:
-					parse.Set(reflect.Append(parse, vData.Index(i)))
+					parse.Set(reflect.Append(parse, sData.Index(i)))
 				}
 			}
 		}

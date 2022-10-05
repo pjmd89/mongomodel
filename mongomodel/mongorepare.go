@@ -44,7 +44,7 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 		case reflect.Struct:
 			o.repareStruct(instance.Type(), v[tags[0]].(bson.M))
 		case reflect.Ptr:
-			o.reparePtr(instance, typedField.Name, v[tags[0]])
+			o.reparePtr(typedField, instance, typedField.Name, v[tags[0]])
 		case reflect.Array, reflect.Slice:
 			o.repareSlice(instance, typedField.Name, v[tags[0]], gqlTags)
 		case reflect.Map:
@@ -68,13 +68,14 @@ func (o *Model) repareStruct(rType reflect.Type, v bson.M) (r reflect.Value) {
 	return instance.Elem()
 }
 func (o *Model) parsePtr(typedField reflect.StructField, instance reflect.Value, v any) {
-
-	switch typedField.Type.Kind() {
+	switch instance.Type().Elem().Kind() {
 	case reflect.Struct:
 		switch v.(type) {
 		case bson.M:
 			o.repareStruct(instance.Type(), v.(bson.M))
 		}
+	case reflect.Ptr:
+
 	case reflect.Array, reflect.Slice:
 		gqlTags := dbutils.GetTags(typedField)
 		o.repareSlice(instance, typedField.Name, v, gqlTags)
@@ -104,7 +105,15 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 	return
 }
 func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags) (r reflect.Value) {
-	parse := value.Elem().FieldByName(fieldName)
+	parse := value
+	isValid := value.Elem().IsValid()
+	if isValid {
+		parse = value.Elem().FieldByName(fieldName)
+	} else {
+		fmt.Println(parse.Type())
+		fmt.Println(parse.Type().Elem())
+	}
+
 	var sData reflect.Value = reflect.ValueOf(data)
 	switch parse.Interface().(type) {
 	case primitive.ObjectID:
@@ -114,6 +123,17 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 		case string:
 			nId, _ := primitive.ObjectIDFromHex(vxData)
 			parse.Set(reflect.ValueOf(nId))
+		}
+	case *primitive.ObjectID:
+		x := reflect.New(reflect.TypeOf(primitive.ObjectID{}))
+		switch vxData := data.(type) {
+		case primitive.ObjectID:
+			x.Elem().Set(sData)
+			parse.Set(x)
+		case string:
+			nId, _ := primitive.ObjectIDFromHex(vxData)
+			x.Elem().Set(reflect.ValueOf(nId))
+			parse.Set(x)
 		}
 	default:
 		//vData := reflect.ValueOf(data)
@@ -159,10 +179,9 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 	}
 	return
 }
-func (o *Model) reparePtr(value reflect.Value, fieldName string, data any) (r reflect.Value) {
-	instance := value.Type().Elem().Field(0)
+func (o *Model) reparePtr(typedField reflect.StructField, value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	if data != nil {
-		o.parsePtr(instance, value.Elem(), data)
+		o.parsePtr(typedField, value.Elem().FieldByName(fieldName), data)
 	}
 	return
 }

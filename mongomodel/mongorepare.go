@@ -109,9 +109,6 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 	isValid := value.Elem().IsValid()
 	if isValid {
 		parse = value.Elem().FieldByName(fieldName)
-	} else {
-		fmt.Println(parse.Type())
-		fmt.Println(parse.Type().Elem())
 	}
 
 	var sData reflect.Value = reflect.ValueOf(data)

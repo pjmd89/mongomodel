@@ -32,31 +32,50 @@ func (o *Model) RepareData(self any, data []bson.M) (err error) {
 	return
 }
 func (o *Model) parseField(typedField reflect.StructField, instance reflect.Value, v bson.M) {
-
+	var realTag string
+	var valueData interface{}
+	var composeData []string
 	gqlTags := dbutils.GetTags(typedField)
 	bsonTagString := typedField.Tag.Get("bson")
 	tags := strings.Split(bsonTagString, ",")
+	realTag = tags[0]
+	valueData = v[tags[0]]
 	if tags[0] == "_id" {
 		typedField.Tag = reflect.StructTag("`bson:\"-\"`")
 	}
+	if len(gqlTags.Compose) > 0 {
+		for _, vv := range gqlTags.Compose {
+			vData := fmt.Sprintf("%v", v[vv])
+			composeData = append(composeData, vData)
+		}
+		v[tags[0]] = strings.Trim(strings.Join(composeData, " "), " ")
+
+	}
+	if gqlTags.Change != "" {
+		realTag = gqlTags.Change
+	}
+	if v[realTag] != nil && valueData == nil {
+		valueData = v[realTag]
+	}
+
 	if tags[0] != "_id" && strings.Trim(bsonTagString, " ") != "-" {
 		switch typedField.Type.Kind() {
 		case reflect.Struct:
-			o.repareStruct(instance.Type(), v[tags[0]].(bson.M))
+			o.repareStruct(instance.Type(), valueData.(bson.M))
 		case reflect.Ptr:
-			o.reparePtr(typedField, instance, typedField.Name, v[tags[0]])
+			o.reparePtr(typedField, instance, typedField.Name, valueData)
 		case reflect.Array, reflect.Slice:
-			o.repareSlice(instance, typedField.Name, v[tags[0]], gqlTags)
+			o.repareSlice(instance, typedField.Name, valueData, gqlTags)
 		case reflect.Map:
-			o.repareMap(instance, typedField.Name, v[tags[0]])
+			o.repareMap(instance, typedField.Name, valueData)
 		case reflect.String:
-			o.repareString(instance, typedField.Name, v[tags[0]])
+			o.repareString(instance, typedField.Name, valueData)
 		case reflect.Bool:
-			o.repareBool(instance, typedField.Name, v[tags[0]])
+			o.repareBool(instance, typedField.Name, valueData)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			o.repareInt(instance, typedField.Name, v[tags[0]])
+			o.repareInt(instance, typedField.Name, valueData)
 		case reflect.Float32, reflect.Float64:
-			o.repareFloat(instance, typedField.Name, v[tags[0]])
+			o.repareFloat(instance, typedField.Name, valueData)
 		}
 	}
 }

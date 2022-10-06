@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -60,11 +61,18 @@ func (o *MongoDBConn) GetClient() interface{} {
 	return o.client
 }
 func (o *MongoDBConn) RenameCollection(database string, from string, to string) {
-	rename := map[string]string{
-		"renameCollection": from,
-		"to":               to,
+
+	rename := bson.D{
+		{"renameCollection", database + "." + from},
+		{"to", database + "." + to},
 	}
-	o.client.Database(database).RunCommand(context.TODO(), rename)
+	var result bson.M
+	o.client.Database(database)
+	err := o.client.Database(database).RunCommand(context.TODO(), rename).Decode(&result)
+	if err != nil {
+		log.Println("Rename collection error: " + err.Error())
+	}
+
 }
 func (o *MongoDBConn) monitor(evt *event.PoolEvent) {
 	if o.Reconnect {

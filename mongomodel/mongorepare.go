@@ -49,7 +49,6 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 			composeData = append(composeData, vData)
 		}
 		v[tags[0]] = strings.Trim(strings.Join(composeData, " "), " ")
-
 	}
 	if gqlTags.Change != "" {
 		realTag = gqlTags.Change

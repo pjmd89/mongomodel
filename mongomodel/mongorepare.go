@@ -60,7 +60,22 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 	if tags[0] != "_id" && strings.Trim(bsonTagString, " ") != "-" {
 		switch typedField.Type.Kind() {
 		case reflect.Struct:
-			o.repareStruct(instance.Type(), valueData.(bson.M))
+			var sendInstance reflect.Type
+			sendInstance = instance.Type()
+			if instance.Kind() == reflect.Ptr {
+				sendInstance = instance.Type().Elem()
+			}
+			if valueData != nil {
+				switch vData := valueData.(type) {
+				case bson.M:
+					o.repareStruct(sendInstance, vData)
+				case bson.A:
+					for _, iv := range vData {
+						fmt.Println(reflect.ValueOf(iv).Type())
+					}
+				}
+			}
+
 		case reflect.Ptr:
 			o.reparePtr(typedField, instance, typedField.Name, valueData)
 		case reflect.Array, reflect.Slice:
@@ -110,6 +125,10 @@ func (o *Model) parsePtr(typedField reflect.StructField, instance reflect.Value,
 	}
 }
 func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r reflect.Value) {
+
+	if value.IsNil() {
+		return
+	}
 	rValue := value.Elem().FieldByName(fieldName)
 	var sData reflect.Value
 	switch data.(type) {

@@ -156,15 +156,17 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 		switch newx.Interface().(type) {
 		case primitive.ObjectID:
 			var idContainers []primitive.ObjectID
-			for i := 0; i < sData.Len(); i++ {
-				var idData primitive.ObjectID
-				switch iData := sData.Index(i).Interface().(type) {
-				case primitive.ObjectID:
-					idData = iData
-				case string:
-					idData, _ = primitive.ObjectIDFromHex(iData)
+			if data != nil {
+				for i := 0; i < sData.Len(); i++ {
+					var idData primitive.ObjectID
+					switch iData := sData.Index(i).Interface().(type) {
+					case primitive.ObjectID:
+						idData = iData
+					case string:
+						idData, _ = primitive.ObjectIDFromHex(iData)
+					}
+					idContainers = append(idContainers, idData)
 				}
-				idContainers = append(idContainers, idData)
 			}
 			parse.Set(reflect.ValueOf(idContainers))
 		case string:

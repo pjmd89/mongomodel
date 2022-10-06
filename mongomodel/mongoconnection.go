@@ -59,6 +59,13 @@ func (o *MongoDBConn) Close() error {
 func (o *MongoDBConn) GetClient() interface{} {
 	return o.client
 }
+func (o *MongoDBConn) RenameCollection(database string, from string, to string) {
+	rename := map[string]string{
+		"renameCollection": from,
+		"to":               to,
+	}
+	o.client.Database(database).RunCommand(context.TODO(), rename)
+}
 func (o *MongoDBConn) monitor(evt *event.PoolEvent) {
 	if o.Reconnect {
 		sleep := 5

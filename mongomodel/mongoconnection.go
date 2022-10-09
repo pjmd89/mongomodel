@@ -67,8 +67,7 @@ func (o *MongoDBConn) RenameCollection(database string, from string, to string) 
 		{"to", database + "." + to},
 	}
 	var result bson.M
-	o.client.Database(database)
-	err := o.client.Database(database).RunCommand(context.TODO(), rename).Decode(&result)
+	err := o.client.Database("admin").RunCommand(context.TODO(), rename).Decode(&result)
 	if err != nil {
 		log.Println("Rename collection error: " + err.Error())
 	}

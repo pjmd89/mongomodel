@@ -338,7 +338,7 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 		}
 		break
 	case reflect.Slice, reflect.Array:
-		if tag.IsObjectID {
+		if tag.IsObjectID && field.Type() == reflect.TypeOf(primitive.ObjectID{}) {
 			var newID primitive.ObjectID
 			if reflect.TypeOf(inputs[tag.Name]).Kind() == reflect.String {
 				newID, _ = primitive.ObjectIDFromHex(inputs[tag.Name].(string))

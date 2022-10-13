@@ -48,7 +48,7 @@ func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r inter
 	if err == nil {
 		insertedID, err := o.conn.Create(data, o.modelName, opts)
 		if err == nil && insertedID != nil {
-			r, err = o.conn.Read(map[string]interface{}{"_id": insertedID}, o.modelName, opts)
+			r, err = o.conn.Read(map[string]interface{}{"_id": insertedID}, o.modelName, nil)
 			if err == nil {
 				cursor := r.(*mongo.Cursor)
 				instance := o.createSliceResult()

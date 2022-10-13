@@ -8,7 +8,6 @@ import (
 
 	"github.com/pjmd89/goutils/dbutils"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -43,14 +42,22 @@ func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r inter
 		return r, err
 	}
 	data, err := SetData(inputs, o.self, DatesController{Created: &createdDate})
-	r = data
 	if opts == nil {
 		opts = []*options.InsertOneOptions{}
 	}
 	if err == nil {
 		insertedID, err := o.conn.Create(data, o.modelName, opts)
 		if err == nil && insertedID != nil {
-			SetID(r, insertedID.(primitive.ObjectID))
+			r, err = o.conn.Read(map[string]interface{}{"_id": insertedID}, o.modelName, opts)
+			if err == nil {
+				cursor := r.(*mongo.Cursor)
+				instance := o.createSliceResult()
+				err = cursor.All(context.TODO(), &instance)
+				rValue := reflect.ValueOf(instance)
+				if rValue.Len() == 1 {
+					r = reflect.ValueOf(instance).Index(0).Interface()
+				}
+			}
 		}
 		if err == nil && insertedID == nil {
 			err = errors.New("Inconsistent data to inserted. Check data sent. No register saved.")

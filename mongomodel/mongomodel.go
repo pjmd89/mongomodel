@@ -74,6 +74,21 @@ func (o *Model) Read(where interface{}, opts interface{}) (r interface{}, err er
 	}
 	return r, err
 }
+func (o *Model) RawRead(where interface{}, opts interface{}) (r interface{}, err error) {
+	var cursor *mongo.Cursor
+	if o.init == false {
+		err = errors.New("DB not initialized")
+		return r, err
+	}
+	r, err = o.conn.Read(where, o.modelName, opts)
+	if err == nil {
+		cursor = r.(*mongo.Cursor)
+		instance := make([]map[string]interface{}, 0)
+		err = cursor.All(context.TODO(), &instance)
+		r = instance
+	}
+	return r, err
+}
 func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	var updateDate int64 = time.Now().Unix()
@@ -85,6 +100,24 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 	data, err := SetData(inputs, o.updateSelf, DatesController{Updated: &updateDate})
 	if err == nil {
 		r, err = o.conn.Update(Update{Set: data}, where, o.modelName, opts)
+		if err == nil {
+			cursor = r.(*mongo.Cursor)
+			instance := o.createSliceResult()
+			cursor.All(context.TODO(), &instance)
+			r = instance
+		}
+	}
+	return r, err
+}
+func (o *Model) RawUpdate(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
+	var cursor *mongo.Cursor
+	if o.init == false {
+		err = errors.New("DB not initialized")
+		return r, err
+	}
+
+	if err == nil {
+		r, err = o.conn.Update(Update{Set: inputs}, where, o.modelName, opts)
 		if err == nil {
 			cursor = r.(*mongo.Cursor)
 			instance := o.createSliceResult()

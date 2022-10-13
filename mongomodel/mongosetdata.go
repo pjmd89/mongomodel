@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -39,11 +40,63 @@ func SetData(inputs map[string]interface{}, model interface{}, datesController D
 
 	switch modelKind {
 	case reflect.Struct:
-		r, err = setStruct(inputs, model, datesController)
+		model, err = defineOmitTags(inputs, model)
+		if err == nil {
+			r, err = setStruct(inputs, model, datesController)
+		}
 	case reflect.Ptr:
 		r, err = SetData(inputs, reflect.ValueOf(model).Elem().Interface(), datesController)
 	}
+	//getData(r)
 	return r, err
+}
+func defineOmitTags(inputs map[string]interface{}, model interface{}) (r interface{}, err error) {
+	fields := []reflect.StructField{}
+	newModel := reflect.TypeOf(model)
+	for i := 0; i < newModel.NumField(); i++ {
+		field := newModel.Field(i)
+		tag := dbutils.GetTags(field)
+		if inputs == nil {
+			err = errors.New("inputs not be nil")
+			return
+		}
+		if inputs[tag.Name] != nil {
+			replaceBSON := regexp.MustCompile(`(bson:"[^"]+)(["])`)
+			fieldTag := fmt.Sprintf("%v", field.Tag)
+			result := replaceBSON.FindString(fieldTag)
+			if result != "" {
+				replace := regexp.MustCompile(`:`)
+				result2 := replace.Split(result, -1)
+				tag2 := strings.Replace(result2[1], `"`, "", -1)
+				replace2 := regexp.MustCompile(`,`)
+				result3 := replace2.Split(tag2, -1)
+				var updateTag []string
+				for _, sv := range result3 {
+					result4 := replace2.Split(sv, -1)
+					if result4[0] != "omitempty" {
+						updateTag = append(updateTag, sv)
+					}
+				}
+				fieldTag = replaceBSON.ReplaceAllString(fieldTag, `bson:"`+strings.Join(updateTag, ",")+`"`)
+				field.Tag = reflect.StructTag(fieldTag)
+			}
+		}
+		fields = append(fields, field)
+	}
+	newStruct := reflect.StructOf(fields)
+	r = reflect.New(newStruct).Elem().Interface()
+	return
+}
+func getData(data interface{}) {
+	rType := reflect.TypeOf(data)
+	rValue := reflect.ValueOf(data)
+	for i := 0; i < rType.Elem().NumField(); i++ {
+		field := rValue.Elem().Field(i)
+		fieldType := rType.Elem().Field(i)
+		if fieldType.Name != "" {
+			fmt.Println("field: ", fieldType.Name, field, fieldType.Tag)
+		}
+	}
 }
 func setStruct(inputs map[string]interface{}, model interface{}, datesController DatesController) (r interface{}, err error) {
 	newModel := reflect.New(reflect.TypeOf(model))
@@ -58,10 +111,6 @@ func setStruct(inputs map[string]interface{}, model interface{}, datesController
 			fieldType := newModel.Elem().Type().Field(i)
 			fieldKind := field.Type().Kind()
 			tag := dbutils.GetTags(fieldType)
-			if inputs == nil {
-				err = errors.New("inputs not be nil")
-				return
-			}
 			if tag.CreatedDate && datesController.Created != nil {
 				inputs[tag.Name] = *datesController.Created
 			}
@@ -380,7 +429,6 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 		break
 	case reflect.String:
 		rValue := reflect.ValueOf(inputs[tag.Name].(string))
-		fmt.Println(rType)
 		field.Set(rValue.Convert(rType))
 		break
 	case reflect.Int:

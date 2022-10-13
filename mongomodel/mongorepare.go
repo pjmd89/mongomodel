@@ -129,6 +129,9 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 	if value.IsNil() {
 		return
 	}
+	if data == nil {
+		return
+	}
 	rValue := value.Elem().FieldByName(fieldName)
 	var sData reflect.Value
 	switch data.(type) {
@@ -143,6 +146,9 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 }
 func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags) (r reflect.Value) {
 	parse := value
+	if data == nil {
+		return
+	}
 	isValid := value.Elem().IsValid()
 	if isValid {
 		parse = value.Elem().FieldByName(fieldName)
@@ -225,6 +231,9 @@ func (o *Model) repareMap(value reflect.Value, fieldName string, data any) (r re
 	return
 }
 func (o *Model) repareBool(value reflect.Value, fieldName string, data any) (r reflect.Value) {
+	if data == nil {
+		return
+	}
 	parse, _ := strconv.ParseBool(fmt.Sprintf("%v", data))
 	rValue := value.Elem().FieldByName(fieldName)
 	sData := reflect.ValueOf(parse)
@@ -232,6 +241,9 @@ func (o *Model) repareBool(value reflect.Value, fieldName string, data any) (r r
 	return
 }
 func (o *Model) repareInt(value reflect.Value, fieldName string, data any) (r reflect.Value) {
+	if data == nil {
+		return
+	}
 	parse, _ := strconv.ParseInt(fmt.Sprintf("%v", data), 10, 64)
 	rValue := value.Elem().FieldByName(fieldName)
 	sData := reflect.ValueOf(parse)
@@ -239,6 +251,9 @@ func (o *Model) repareInt(value reflect.Value, fieldName string, data any) (r re
 	return
 }
 func (o *Model) repareFloat(value reflect.Value, fieldName string, data any) (r reflect.Value) {
+	if data == nil {
+		return
+	}
 	parse, _ := strconv.ParseFloat(fmt.Sprintf("%v", data), 64)
 	rValue := value.Elem().FieldByName(fieldName)
 	sData := reflect.ValueOf(parse)

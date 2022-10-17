@@ -311,7 +311,7 @@ func (o *MongoDBConn) Delete(where interface{}, collection string, opts interfac
 	}
 	if checkOpts {
 		cursor, _ = coll.Find(context.TODO(), where)
-		_, err = coll.DeleteOne(context.TODO(), where, opts.([]*options.DeleteOptions)...)
+		_, err = coll.DeleteMany(context.TODO(), where, opts.([]*options.DeleteOptions)...)
 		results = cursor
 		if err != nil {
 			var x *mongo.Cursor

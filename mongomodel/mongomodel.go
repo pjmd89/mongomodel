@@ -144,7 +144,7 @@ func (o *Model) Delete(where interface{}, opts interface{}) (r interface{}, err 
 	r, err = o.conn.Delete(where, o.modelName, opts)
 	if err == nil {
 		cursor = r.(*mongo.Cursor)
-		instance := o.self
+		instance := o.createSliceResult()
 		cursor.All(context.TODO(), &instance)
 		r = instance
 	}

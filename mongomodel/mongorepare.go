@@ -201,12 +201,15 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 					iContainers = append(iContainers, sData.Index(i).Interface().(string))
 				}
 			}
-
 			parse.Set(reflect.ValueOf(iContainers))
 		default:
 			count := 0
 			if data != nil && !sData.IsNil() {
 				count = sData.Len()
+			}
+			if count == 0 {
+				x := reflect.MakeSlice(reflect.SliceOf(parse.Type().Elem()), 0, 0)
+				parse.Set(x)
 			}
 			for i := 0; i < count; i++ {
 				x := parse.Type().Elem().Kind()

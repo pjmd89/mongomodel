@@ -159,8 +159,14 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 		switch typedField.Type.Kind() {
 		case reflect.Ptr:
 		case reflect.Array, reflect.Slice:
-			x := reflect.MakeSlice(reflect.SliceOf(typedField.Type.Elem()), 0, 0)
-			parse.Elem().FieldByName(fieldName).Set(x)
+			if typedField.Type == reflect.TypeOf(primitive.ObjectID{}) {
+				x := reflect.ValueOf(primitive.ObjectID{})
+				parse.Elem().FieldByName(fieldName).Set(x)
+			} else {
+				x := reflect.MakeSlice(reflect.SliceOf(typedField.Type.Elem()), 0, 0)
+				parse.Elem().FieldByName(fieldName).Set(x)
+			}
+
 		}
 		return
 	}

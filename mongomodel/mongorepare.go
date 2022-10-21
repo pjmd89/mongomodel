@@ -134,6 +134,11 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 		return
 	}
 	if data == nil {
+		switch value.Elem().FieldByName(fieldName).Type().Kind() {
+		case reflect.String:
+			x := ""
+			value.Elem().FieldByName(fieldName).Set(reflect.ValueOf(x).Convert(value.Elem().FieldByName(fieldName).Type()))
+		}
 		return
 	}
 	rValue := value.Elem().FieldByName(fieldName)
@@ -245,6 +250,11 @@ func (o *Model) repareMap(value reflect.Value, fieldName string, data any) (r re
 }
 func (o *Model) repareBool(value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	if data == nil {
+		switch value.Elem().FieldByName(fieldName).Type().Kind() {
+		case reflect.Bool:
+			x := false
+			value.Elem().FieldByName(fieldName).Set(reflect.ValueOf(x).Convert(value.Elem().FieldByName(fieldName).Type()))
+		}
 		return
 	}
 	parse, _ := strconv.ParseBool(fmt.Sprintf("%v", data))
@@ -255,6 +265,11 @@ func (o *Model) repareBool(value reflect.Value, fieldName string, data any) (r r
 }
 func (o *Model) repareInt(value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	if data == nil {
+		switch value.Elem().FieldByName(fieldName).Type().Kind() {
+		case reflect.Int64:
+			x := int64(0)
+			value.Elem().FieldByName(fieldName).Set(reflect.ValueOf(x).Convert(value.Elem().FieldByName(fieldName).Type()))
+		}
 		return
 	}
 	parse, _ := strconv.ParseInt(fmt.Sprintf("%v", data), 10, 64)
@@ -265,6 +280,11 @@ func (o *Model) repareInt(value reflect.Value, fieldName string, data any) (r re
 }
 func (o *Model) repareFloat(value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	if data == nil {
+		switch value.Elem().FieldByName(fieldName).Type().Kind() {
+		case reflect.Float64:
+			x := float64(0)
+			value.Elem().FieldByName(fieldName).Set(reflect.ValueOf(x).Convert(value.Elem().FieldByName(fieldName).Type()))
+		}
 		return
 	}
 	parse, _ := strconv.ParseFloat(fmt.Sprintf("%v", data), 64)

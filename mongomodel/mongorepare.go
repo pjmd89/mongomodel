@@ -43,6 +43,7 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 	if tags[0] == "_id" {
 		typedField.Tag = reflect.StructTag("`bson:\"-\"`")
 	}
+
 	if len(gqlTags.Compose) > 0 {
 		for _, vv := range gqlTags.Compose {
 			vData := fmt.Sprintf("%v", v[vv])
@@ -79,7 +80,7 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 		case reflect.Ptr:
 			o.reparePtr(typedField, instance, typedField.Name, valueData)
 		case reflect.Array, reflect.Slice:
-			o.repareSlice(instance, typedField.Name, valueData, gqlTags)
+			o.repareSlice(instance, typedField.Name, valueData, gqlTags, typedField)
 		case reflect.Map:
 			o.repareMap(instance, typedField.Name, valueData)
 		case reflect.String:
@@ -90,6 +91,9 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 			o.repareInt(instance, typedField.Name, valueData)
 		case reflect.Float32, reflect.Float64:
 			o.repareFloat(instance, typedField.Name, valueData)
+		default:
+			x := typedField.Type.Kind()
+			fmt.Println(x)
 		}
 	}
 }
@@ -111,7 +115,7 @@ func (o *Model) parsePtr(typedField reflect.StructField, instance reflect.Value,
 
 	case reflect.Array, reflect.Slice:
 		gqlTags := dbutils.GetTags(typedField)
-		o.repareSlice(instance, typedField.Name, v, gqlTags)
+		o.repareSlice(instance, typedField.Name, v, gqlTags, typedField)
 	case reflect.Map:
 		o.repareMap(instance, typedField.Name, v)
 	case reflect.String:
@@ -144,9 +148,15 @@ func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r
 	rValue.Set(sData.Convert(rValue.Type()))
 	return
 }
-func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags) (r reflect.Value) {
+func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags, typedField reflect.StructField) (r reflect.Value) {
 	parse := value
 	if data == nil {
+		switch typedField.Type.Kind() {
+		case reflect.Ptr:
+		case reflect.Array, reflect.Slice:
+			x := reflect.MakeSlice(reflect.SliceOf(typedField.Type.Elem()), 0, 0)
+			parse.Elem().FieldByName(fieldName).Set(x)
+		}
 		return
 	}
 	isValid := value.Elem().IsValid()

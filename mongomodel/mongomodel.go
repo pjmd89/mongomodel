@@ -205,7 +205,7 @@ func (o *Model) InterfaceReplace(data interface{}, where interface{}, opts inter
 	}
 	return r, err
 }
-func (o *Model) Repare(idType interface{}) (r bool, err error) {
+func (o *Model) Repare() (r bool, err error) {
 	var result interface{}
 	if o.init == false {
 		err = errors.New("DB not initialized")

@@ -269,7 +269,7 @@ func (o *Model) getModelName() string {
 	}
 	return s
 }
-func (o *Model) RenameCollection(database, from, to string) {
+func (o *Model) RenameCollection(from, to string) {
 	conn := o.conn.(*MongoDBConn)
-	conn.RenameCollection(database, from, to)
+	conn.RenameCollection(from, to)
 }

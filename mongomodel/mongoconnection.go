@@ -60,11 +60,11 @@ func (o *MongoDBConn) Close() error {
 func (o *MongoDBConn) GetClient() interface{} {
 	return o.client
 }
-func (o *MongoDBConn) RenameCollection(database string, from string, to string) {
+func (o *MongoDBConn) RenameCollection(from, to string) {
 
 	rename := bson.D{
-		{"renameCollection", database + "." + from},
-		{"to", database + "." + to},
+		{"renameCollection", from},
+		{"to", to},
 	}
 	var result bson.M
 	err := o.client.Database("admin").RunCommand(context.TODO(), rename).Decode(&result)

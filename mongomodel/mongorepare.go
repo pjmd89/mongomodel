@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pjmd89/goutils/dbutils"
+	"github.com/pjmd89/goutils/systemutils/debugmode"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -16,18 +17,18 @@ func (o *Model) RepareData(self any, data []bson.M) (err error) {
 	xd := dbutils.CreateStruct(self, false)
 	rType := reflect.TypeOf(xd)
 	for _, v := range data {
-		//o.repareStruct(rType, v)
-		///*
 		x := o.repareStruct(rType, v)
 		where := map[string]interface{}{
 			"_id": v["_id"],
 		}
-		_, err := o.InterfaceReplace(x.Interface(), where, nil)
-		if err != nil {
-			log.Println(err.Error())
+		if !debugmode.Enabled {
+			_, err := o.InterfaceReplace(x.Interface(), where, nil)
+			if err != nil {
+				log.Println(err.Error())
+			}
+		} else {
+			log.Println(x.Interface())
 		}
-		//*/
-
 	}
 	return
 }

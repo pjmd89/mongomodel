@@ -177,6 +177,7 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 	}
 
 	var sData reflect.Value = reflect.ValueOf(data)
+
 	switch parse.Interface().(type) {
 	case primitive.ObjectID:
 		switch vxData := data.(type) {
@@ -186,6 +187,13 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 			nId, _ := primitive.ObjectIDFromHex(vxData)
 			parse.Set(reflect.ValueOf(nId))
 		}
+	case []primitive.ObjectID:
+		x := reflect.MakeSlice(reflect.SliceOf(typedField.Type.Elem()), 0, 0)
+		for _, id := range data.(primitive.A) {
+			newObjectID, _ := primitive.ObjectIDFromHex(id.(string))
+			x = reflect.Append(x, reflect.ValueOf(newObjectID))
+		}
+		parse.Set(x)
 	case *primitive.ObjectID:
 		x := reflect.New(reflect.TypeOf(primitive.ObjectID{}))
 		switch vxData := data.(type) {

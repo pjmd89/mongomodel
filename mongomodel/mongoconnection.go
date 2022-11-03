@@ -11,6 +11,7 @@ import (
 
 	"github.com/pjmd89/goutils/dbutils"
 	"github.com/pjmd89/goutils/jsonutils"
+	"github.com/pjmd89/goutils/systemutils/debugmode"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,6 +24,9 @@ func NewConn(configPath *string) (r dbutils.DBInterface) {
 
 	if configPath != nil {
 		configFile = *configPath
+	}
+	if !debugmode.Enabled {
+		configFile = "/etc/cp/db/db.json"
 	}
 	jsonutils.GetJson(configFile, db)
 	db.database = db.DataBase

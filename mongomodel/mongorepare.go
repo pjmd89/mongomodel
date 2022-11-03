@@ -27,7 +27,7 @@ func (o *Model) RepareData(self any, data []bson.M) (err error) {
 				log.Println(err.Error())
 			}
 		} else {
-			log.Println(x.Interface())
+			//log.Println(x.Interface())
 		}
 	}
 	return
@@ -190,8 +190,14 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 	case []primitive.ObjectID:
 		x := reflect.MakeSlice(reflect.SliceOf(typedField.Type.Elem()), 0, 0)
 		for _, id := range data.(primitive.A) {
-			newObjectID, _ := primitive.ObjectIDFromHex(id.(string))
-			x = reflect.Append(x, reflect.ValueOf(newObjectID))
+			switch id.(type) {
+			case string:
+				newObjectID, _ := primitive.ObjectIDFromHex(id.(string))
+				x = reflect.Append(x, reflect.ValueOf(newObjectID))
+			case primitive.ObjectID:
+				x = reflect.Append(x, reflect.ValueOf(id))
+			}
+
 		}
 		parse.Set(x)
 	case *primitive.ObjectID:
@@ -226,6 +232,9 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 			parse.Set(reflect.ValueOf(idContainers))
 		case string:
 			iContainers := make([]string, 0, 0)
+			if fieldName == "MemoryTags" {
+				fmt.Println(sData)
+			}
 			if data != nil && !sData.IsNil() {
 				for i := 0; i < sData.Len(); i++ {
 					iContainers = append(iContainers, sData.Index(i).Interface().(string))

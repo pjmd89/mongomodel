@@ -32,9 +32,6 @@ func (o *Model) Init(m interface{}, conn dbutils.DBInterface) {
 func (o *Model) SetDBName(dbName string) {
 	o.dbName = dbName
 }
-func (o *Model) GetSkipCollection() []string {
-	return o.conn.(*MongoDBConn).SkipCollection
-}
 func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r interface{}, err error) {
 	var createdDate int64 = time.Now().Unix()
 	if o.init == false {

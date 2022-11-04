@@ -19,9 +19,8 @@ type MongoDBConn struct {
 	MongoDBConnInterface
 	dbutils.DBInterface
 	dbutils.DB
-	tryingCounter  int
-	client         *mongo.Client
-	database       string
-	collection     string
-	SkipCollection []string `json:"skipCollection"`
+	tryingCounter int
+	client        *mongo.Client
+	database      string
+	collection    string
 }

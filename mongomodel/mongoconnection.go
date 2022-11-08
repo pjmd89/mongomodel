@@ -188,6 +188,48 @@ func (o *MongoDBConn) Read(where interface{}, collection string, opts interface{
 	}
 	return results, err
 }
+func (o *MongoDBConn) Watch(where interface{}, collection string, opts interface{}) (results interface{}, err error) {
+	var cursor *mongo.ChangeStream
+	results = cursor
+	checkCollection, database, collection := o.CheckCollection(collection)
+	checkOpts := true
+	if !checkCollection {
+		err = errors.New("No collection specified")
+		return nil, err
+	}
+	coll := o.client.Database(database).Collection(collection)
+	if where == nil {
+		where = bson.M{}
+	}
+
+	if opts == nil {
+		opts = []*options.ChangeStreamOptions{}
+	}
+	optsKind := reflect.ValueOf(opts).Kind()
+
+	switch optsKind {
+	case reflect.Slice:
+		for i, v := range opts.([]*options.ChangeStreamOptions) {
+			optsType := reflect.ValueOf(v).Type()
+			if optsType != reflect.TypeOf(&options.ChangeStreamOptions{}) {
+				err = fmt.Errorf("opts %d value is not *options.FindOptions", i)
+				checkOpts = false
+				break
+			}
+		}
+		break
+	default:
+		err = errors.New("opts is not a Slice")
+		checkOpts = false
+	}
+	if checkOpts {
+		cursor, err = coll.Watch(context.TODO(), where, opts.([]*options.ChangeStreamOptions)...)
+		if err == nil {
+			results = cursor
+		}
+	}
+	return results, err
+}
 func (o *MongoDBConn) Update(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.Cursor
 	checkCollection, database, collection := o.CheckCollection(collection)

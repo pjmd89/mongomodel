@@ -93,6 +93,22 @@ func (o *Model) RawRead(where interface{}, opts interface{}) (r interface{}, err
 	}
 	return r, err
 }
+func (o *Model) Watch(where interface{}, opts interface{}) (r interface{}, err error) {
+	var cursor *mongo.Cursor
+	if o.init == false {
+		err = errors.New("DB not initialized")
+		return r, err
+	}
+	//pipe := mongo.Pipeline{where}
+	r, err = o.conn.Watch(where, o.modelName, opts)
+	if err == nil {
+		cursor = r.(*mongo.Cursor)
+		instance := make([]map[string]interface{}, 0)
+		err = cursor.All(context.TODO(), &instance)
+		r = instance
+	}
+	return r, err
+}
 func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	var updateDate int64 = time.Now().Unix()

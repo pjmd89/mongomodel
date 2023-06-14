@@ -416,9 +416,15 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 				}
 				break
 			default:
-
-				for i := 0; i < parseArr.Len(); i++ {
-					newArr = reflect.Append(newArr, parseArr.Index(i))
+				if reflect.TypeOf(primitive.ObjectID{}) == fieldType && reflect.TypeOf(inputs[tag.Name]).Elem().Kind() == reflect.Interface {
+					for i := 0; i < parseArr.Len(); i++ {
+						fmt.Println(parseArr.Index(i))
+						newArr = reflect.Append(newArr, reflect.ValueOf(parseArr.Index(i).Interface().(primitive.ObjectID)))
+					}
+				} else {
+					for i := 0; i < parseArr.Len(); i++ {
+						newArr = reflect.Append(newArr, parseArr.Index(i))
+					}
 				}
 				field.Set(newArr)
 			}

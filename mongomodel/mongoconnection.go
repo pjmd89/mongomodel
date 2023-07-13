@@ -17,6 +17,22 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+func NewConnWithURIStruct(config URIData) (r dbutils.DBInterface) {
+	db := &MongoDBConn{
+		DB: dbutils.DB{
+			Host:     config.Host,
+			Port:     config.Port,
+			User:     config.User,
+			Pass:     config.Pass,
+			DataBase: config.DataBase,
+		},
+	}
+	db.database = db.DataBase
+	r = db
+	r.Connect()
+	return r
+}
+
 func NewConn(configPath *string) (r dbutils.DBInterface) {
 	db := &MongoDBConn{}
 	configFile := "./etc/db/db.json"
@@ -103,7 +119,7 @@ func (o *MongoDBConn) getURI() string {
 	}
 	uri += credentials + instance
 
-	return uri + "/?maxPoolSize=20&w=majority"
+	return uri + "/" + o.DataBase + "?maxPoolSize=20&w=majority"
 }
 func (o *MongoDBConn) ping() error {
 	err := o.client.Ping(context.TODO(), nil)

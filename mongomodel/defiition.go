@@ -24,3 +24,11 @@ type MongoDBConn struct {
 	database      string
 	collection    string
 }
+
+type URIData struct {
+	Host     string
+	Port     string
+	User     string
+	Pass     string
+	DataBase string
+}

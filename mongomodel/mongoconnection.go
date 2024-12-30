@@ -155,7 +155,8 @@ func (o *MongoDBConn) Create(inputs interface{}, collection string, opts interfa
 
 	if checkOpts {
 		coll := o.client.Database(database).Collection(collection)
-		r, err := coll.InsertOne(context.TODO(), inputs, opts.([]*options.InsertOneOptions)...)
+		var r *mongo.InsertOneResult
+		r, err = coll.InsertOne(context.TODO(), inputs, opts.([]*options.InsertOneOptions)...)
 		if err == nil {
 			results = r.InsertedID
 		}
@@ -204,6 +205,93 @@ func (o *MongoDBConn) Read(where interface{}, collection string, opts interface{
 	}
 	return results, err
 }
+
+func (p *MongoDBConn) evaluateType(typpe, expected interface{}) (err error) {
+	inputValueType := reflect.ValueOf(typpe).Type()
+	expectedValueType := reflect.TypeOf(expected)
+	if inputValueType != expectedValueType {
+		err = fmt.Errorf("opts type must be %s not %s", expectedValueType.String(), inputValueType.String())
+	}
+
+	return
+}
+
+func (o *MongoDBConn) CreateIndex(keys interface{}, collection string, indexModelOpts, opts interface{}) (results interface{}, err error) {
+	isIn, database, collection := o.CheckCollection(collection)
+	if !isIn {
+		err = errors.New("no collection specified")
+		return "", err
+	}
+
+	indexColl := o.client.Database(database).Collection(collection).Indexes()
+	indexM := mongo.IndexModel{
+		Keys: keys,
+		//Options: indexModelOpts.(*options.IndexOptions),
+	}
+
+	if indexModelOpts != nil {
+		if err = o.evaluateType(indexModelOpts, &options.IndexOptions{}); err != nil {
+			return
+		}
+		indexM.Options = indexModelOpts.(*options.IndexOptions)
+	}
+
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.CreateIndexesOptions{}); err != nil {
+			return
+		}
+	} else {
+		opts = []*options.CreateIndexesOptions{}
+	}
+
+	indexName, err := indexColl.CreateOne(context.TODO(), indexM, opts.([]*options.CreateIndexesOptions)...)
+	if err == nil {
+		results = indexName
+	}
+
+	return
+}
+
+func (o *MongoDBConn) ListIndexes(collection string, opts interface{}) (results interface{}, err error) {
+	isIn, database, collection := o.CheckCollection(collection)
+	if !isIn {
+		err = errors.New("no collection specified")
+		return "", err
+	}
+
+	indexColl := o.client.Database(database).Collection(collection).Indexes()
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.ListIndexesOptions{}); err != nil {
+			return
+		}
+	} else {
+		opts = []*options.ListIndexesOptions{}
+	}
+
+	results, err = indexColl.ListSpecifications(context.TODO(), opts.([]*options.ListIndexesOptions)...)
+	return
+}
+
+func (o *MongoDBConn) DropIndex(name, collection string, opts interface{}) (results interface{}, err error) {
+	isIn, database, collection := o.CheckCollection(collection)
+	if !isIn {
+		err = errors.New("no collection specified")
+		return "", err
+	}
+
+	indexColl := o.client.Database(database).Collection(collection).Indexes()
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.DropIndexesOptions{}); err != nil {
+			return
+		}
+	} else {
+		opts = []*options.DropIndexesOptions{}
+	}
+
+	results, err = indexColl.DropOne(context.TODO(), name, opts.([]*options.DropIndexesOptions)...)
+	return
+}
+
 func (o *MongoDBConn) Watch(where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.ChangeStream
 	results = cursor
@@ -246,50 +334,71 @@ func (o *MongoDBConn) Watch(where interface{}, collection string, opts interface
 	}
 	return results, err
 }
+
 func (o *MongoDBConn) Update(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.Cursor
 	checkCollection, database, collection := o.CheckCollection(collection)
-	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
+		return nil, err
+	}
+
+	collOpts := options.Collection().SetBSONOptions(
+		&options.BSONOptions{
+			OmitZeroStruct: true,
+		},
+	)
+
+	coll := o.client.Database(database).Collection(collection, collOpts)
+	if where == nil {
+		where = bson.M{}
+	}
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.UpdateOptions{}); err != nil {
+			return
+		}
+	} else {
+		opts = []*options.UpdateOptions{}
+	}
+	_, err = coll.UpdateOne(context.TODO(), where, inputs, opts.([]*options.UpdateOptions)...)
+	cursor, _ = coll.Find(context.TODO(), where)
+	results = cursor
+	if err != nil {
+		var x *mongo.Cursor
+		results = x
+	}
+
+	return results, err
+}
+
+func (o *MongoDBConn) FindOneAndUpdate(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
+	checkCollection, database, collection := o.CheckCollection(collection)
+	if !checkCollection {
+		err = errors.New("no collection specified")
 		return nil, err
 	}
 	coll := o.client.Database(database).Collection(collection)
 	if where == nil {
 		where = bson.M{}
 	}
-
-	if opts == nil {
-		opts = []*options.UpdateOptions{}
-	}
-	optsKind := reflect.ValueOf(opts).Kind()
-
-	switch optsKind {
-	case reflect.Slice:
-		for i, v := range opts.([]*options.UpdateOptions) {
-			optsType := reflect.ValueOf(v).Type()
-			if optsType != reflect.TypeOf(&options.UpdateOptions{}) {
-				err = fmt.Errorf("opts %d value is not *options.UpdateOptions", i)
-				checkOpts = false
-				break
-			}
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.FindOneAndUpdateOptions{}); err != nil {
+			return
 		}
-		break
-	default:
-		err = errors.New("opts is not a Slice")
-		checkOpts = false
+	} else {
+		opts = []*options.FindOneAndUpdateOptions{}
 	}
-	if checkOpts {
-		_, err = coll.UpdateOne(context.TODO(), where, inputs, opts.([]*options.UpdateOptions)...)
-		cursor, _ = coll.Find(context.TODO(), where)
-		results = cursor
-		if err != nil {
-			var x *mongo.Cursor
-			results = x
-		}
+
+	r := coll.FindOneAndUpdate(context.TODO(), where, inputs, opts.([]*options.FindOneAndUpdateOptions)...)
+	if r.Err() != nil {
+		err = r.Err()
+		return
 	}
-	return results, err
+	results = r
+
+	return
 }
+
 func (o *MongoDBConn) Replace(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.Cursor
 	checkCollection, database, collection := o.CheckCollection(collection)

@@ -43,7 +43,8 @@ func (o *Model) Create(inputs map[string]interface{}, opts interface{}) (r inter
 		opts = []*options.InsertOneOptions{}
 	}
 	if err == nil {
-		insertedID, err := o.conn.Create(data, o.modelName, opts)
+		var insertedID any
+		insertedID, err = o.conn.Create(data, o.modelName, opts)
 		if err == nil && insertedID != nil {
 			r, err = o.conn.Read(map[string]interface{}{"_id": insertedID}, o.modelName, nil)
 			if err == nil {
@@ -120,7 +121,6 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 		err = errors.New("DB not initialized")
 		return r, err
 	}
-
 	data, err := SetData(inputs, o.updateSelf, DatesController{Updated: &updateDate})
 	if err == nil {
 		r, err = o.conn.Update(Update{Set: data}, where, o.modelName, opts)
@@ -133,6 +133,7 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 	}
 	return r, err
 }
+
 func (o *Model) RawUpdate(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	if o.init == false {
@@ -264,10 +265,8 @@ func (o *Model) createSliceResult() interface{} {
 	switch vType {
 	case reflect.Struct:
 		instance = reflect.TypeOf(o.self)
-		break
 	case reflect.Ptr:
 		instance = reflect.TypeOf(o.self).Elem()
-		break
 	}
 
 	i := reflect.MakeSlice(reflect.SliceOf(instance), 0, 0)

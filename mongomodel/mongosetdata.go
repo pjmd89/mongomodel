@@ -100,7 +100,6 @@ func getData(data interface{}) {
 }
 func setStruct(inputs map[string]interface{}, model interface{}, datesController DatesController) (r interface{}, err error) {
 	newModel := reflect.New(reflect.TypeOf(model))
-
 	switch newModel.Elem().Kind() {
 	case reflect.Map:
 		newModel.Elem().Set(reflect.ValueOf(inputs))
@@ -128,8 +127,10 @@ func setStruct(inputs map[string]interface{}, model interface{}, datesController
 					break
 				}
 			}
+			//fmt.Println("field: ", fieldType.Name, field, fieldType.Tag)
 		}
 	}
+	//fmt.Println("model: ", newModel.Elem().Interface())
 	return newModel.Interface(), err
 }
 func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, datesController DatesController) (err error) {
@@ -139,6 +140,7 @@ func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, dat
 		var rField interface{}
 		rField, err = setStruct(map[string]interface{}{}, field.Interface(), datesController)
 		field.Set(reflect.ValueOf(rField).Elem())
+		fmt.Println("rfield: ", reflect.ValueOf(rField).Interface(), "field: ", field.Interface())
 		break
 	case reflect.Ptr:
 		fieldType := field.Type().Elem()

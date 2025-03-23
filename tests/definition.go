@@ -1,6 +1,9 @@
 package tests
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/pjmd89/mongomodel/mongomodel"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -8,6 +11,7 @@ import (
 type TestSubTypes struct {
 	StringOne string `bson:"stringOne" gql:"name=stringOne"`
 	StringTwo string `bson:"stringTwo" gql:"name=stringTwo,default=string2"`
+	IntOne    int    `bson:"IntOne" gql:"name=IntOne"`
 }
 type TestTypes struct {
 	mongomodel.Model    `bson:"-"`
@@ -50,4 +54,21 @@ type TestTypes struct {
 	Updated             int64                   `bson:"updated" gql:"name=updated,updatedDate=true"`
 	CreatedPtr          *int64                  `bson:"createdPtr" gql:"name=createdPtr,createdDate=true"`
 	UpdatedPrt          *int64                  `bson:"updatedPtr" gql:"name=updatedPtr,updatedDate=true"`
+}
+
+type TestIndex struct {
+	mongomodel.Model `bson:"-"`
+	//Headquarter      TestGeospatialIndex `bson:"headquarter" gql:"name=headquarter"`
+	TheaterId string `bson:"theaterId" gql:"name=theaterId"`
+}
+
+type TestGeospatialIndex struct {
+	Lat float64 `bson:"lat" gql:"name=lat"`
+	Lon float64 `bson:"lon" gql:"name=lon"`
+}
+
+func (o TestSubTypes) IsZero() bool {
+	v := reflect.ValueOf(o)
+	fmt.Println("call to isZero")
+	return v.IsZero()
 }

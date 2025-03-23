@@ -155,7 +155,8 @@ func (o *MongoDBConn) Create(inputs interface{}, collection string, opts interfa
 
 	if checkOpts {
 		coll := o.client.Database(database).Collection(collection)
-		r, err := coll.InsertOne(context.TODO(), inputs, opts.([]*options.InsertOneOptions)...)
+		var r *mongo.InsertOneResult
+		r, err = coll.InsertOne(context.TODO(), inputs, opts.([]*options.InsertOneOptions)...)
 		if err == nil {
 			results = r.InsertedID
 		}
@@ -176,26 +177,14 @@ func (o *MongoDBConn) Read(where interface{}, collection string, opts interface{
 		where = bson.M{}
 	}
 
-	if opts == nil {
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.FindOptions{}); err != nil {
+			return
+		}
+	} else {
 		opts = []*options.FindOptions{}
 	}
-	optsKind := reflect.ValueOf(opts).Kind()
 
-	switch optsKind {
-	case reflect.Slice:
-		for i, v := range opts.([]*options.FindOptions) {
-			optsType := reflect.ValueOf(v).Type()
-			if optsType != reflect.TypeOf(&options.FindOptions{}) {
-				err = fmt.Errorf("opts %d value is not *options.FindOptions", i)
-				checkOpts = false
-				break
-			}
-		}
-		break
-	default:
-		err = errors.New("opts is not a Slice")
-		checkOpts = false
-	}
 	if checkOpts {
 		cursor, err = coll.Find(context.TODO(), where, opts.([]*options.FindOptions)...)
 		if err == nil {
@@ -204,6 +193,17 @@ func (o *MongoDBConn) Read(where interface{}, collection string, opts interface{
 	}
 	return results, err
 }
+
+func (p *MongoDBConn) evaluateType(typpe, expected interface{}) (err error) {
+	inputValueType := reflect.ValueOf(typpe).Type()
+	expectedValueType := reflect.TypeOf(expected)
+	if inputValueType != expectedValueType {
+		err = fmt.Errorf("opts type must be %s not %s", expectedValueType.String(), inputValueType.String())
+	}
+
+	return
+}
+
 func (o *MongoDBConn) Watch(where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.ChangeStream
 	results = cursor
@@ -246,50 +246,43 @@ func (o *MongoDBConn) Watch(where interface{}, collection string, opts interface
 	}
 	return results, err
 }
+
 func (o *MongoDBConn) Update(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.Cursor
 	checkCollection, database, collection := o.CheckCollection(collection)
-	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
 		return nil, err
 	}
-	coll := o.client.Database(database).Collection(collection)
+
+	collOpts := options.Collection().SetBSONOptions(
+		&options.BSONOptions{
+			OmitZeroStruct: true,
+		},
+	)
+
+	coll := o.client.Database(database).Collection(collection, collOpts)
 	if where == nil {
 		where = bson.M{}
 	}
-
-	if opts == nil {
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.UpdateOptions{}); err != nil {
+			return
+		}
+	} else {
 		opts = []*options.UpdateOptions{}
 	}
-	optsKind := reflect.ValueOf(opts).Kind()
+	_, err = coll.UpdateOne(context.TODO(), where, inputs, opts.([]*options.UpdateOptions)...)
+	cursor, _ = coll.Find(context.TODO(), where)
+	results = cursor
+	if err != nil {
+		var x *mongo.Cursor
+		results = x
+	}
 
-	switch optsKind {
-	case reflect.Slice:
-		for i, v := range opts.([]*options.UpdateOptions) {
-			optsType := reflect.ValueOf(v).Type()
-			if optsType != reflect.TypeOf(&options.UpdateOptions{}) {
-				err = fmt.Errorf("opts %d value is not *options.UpdateOptions", i)
-				checkOpts = false
-				break
-			}
-		}
-		break
-	default:
-		err = errors.New("opts is not a Slice")
-		checkOpts = false
-	}
-	if checkOpts {
-		_, err = coll.UpdateOne(context.TODO(), where, inputs, opts.([]*options.UpdateOptions)...)
-		cursor, _ = coll.Find(context.TODO(), where)
-		results = cursor
-		if err != nil {
-			var x *mongo.Cursor
-			results = x
-		}
-	}
 	return results, err
 }
+
 func (o *MongoDBConn) Replace(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.Cursor
 	checkCollection, database, collection := o.CheckCollection(collection)

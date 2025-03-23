@@ -36,13 +36,18 @@ func TestUpdate(t *testing.T) {
 		"_id": id,
 	}
 	updateData := map[string]any{
+		"structPtrWithVal": map[string]any{"stringOne": "valueOne", "stringTwo": "valueTwo", "intOne": 3},
+		"arr": []string{
+			"foo",
+			"bar",
+		},
 		"map": map[string]any{
 			"nombre": "jose",
 		},
 		"mapWithVal": map[string]any{
 			"nombre": "santiago",
 		},
-		//"struct": map[string]any{"stringOne": "valueOne", "stringTwo": "valueTwo"},
+		"struct": map[string]any{"stringOne": "valueOne", "stringTwo": "valueTwo", "intOne": 4},
 	}
 	opts := []*options.UpdateOptions{}
 

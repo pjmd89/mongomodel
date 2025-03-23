@@ -32,7 +32,7 @@ func (o *Model) RepareData(self any, data []bson.M) (err error) {
 	}
 	return
 }
-func (o *Model) parseField(typedField reflect.StructField, instance reflect.Value, v bson.M) {
+func (o *Model) parseField(typedField reflect.StructField, fieldInstance reflect.Value, v bson.M) {
 	var realTag string
 	var valueData interface{}
 	var composeData []string
@@ -62,15 +62,12 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 	if tags[0] != "_id" && strings.Trim(bsonTagString, " ") != "-" {
 		switch typedField.Type.Kind() {
 		case reflect.Struct:
-			var sendInstance reflect.Type
-			sendInstance = instance.Type()
-			if instance.Kind() == reflect.Ptr {
-				sendInstance = instance.Type().Elem()
-			}
+			sendInstance := typedField.Type
 			if valueData != nil {
 				switch vData := valueData.(type) {
 				case bson.M:
-					o.repareStruct(sendInstance, vData)
+					structField := o.repareStruct(sendInstance, vData)
+					fieldInstance.Set(structField)
 				case bson.A:
 					for _, iv := range vData {
 						fmt.Println(reflect.ValueOf(iv).Type())
@@ -79,19 +76,19 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 			}
 
 		case reflect.Ptr:
-			o.reparePtr(typedField, instance, typedField.Name, valueData)
+			o.reparePtr(typedField, fieldInstance, typedField.Name, valueData)
 		case reflect.Array, reflect.Slice:
-			o.repareSlice(instance, typedField.Name, valueData, gqlTags, typedField)
+			o.repareSlice(fieldInstance, typedField.Name, valueData, gqlTags, typedField)
 		case reflect.Map:
-			o.repareMap(instance, typedField.Name, valueData)
+			o.repareMap(fieldInstance, typedField.Name, valueData)
 		case reflect.String:
-			o.repareString(instance, typedField.Name, valueData)
+			o.repareString(fieldInstance, typedField.Name, valueData)
 		case reflect.Bool:
-			o.repareBool(instance, typedField.Name, valueData)
+			o.repareBool(fieldInstance, typedField.Name, valueData)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			o.repareInt(instance, typedField.Name, valueData)
+			o.repareInt(fieldInstance, typedField.Name, valueData)
 		case reflect.Float32, reflect.Float64:
-			o.repareFloat(instance, typedField.Name, valueData)
+			o.repareFloat(fieldInstance, typedField.Name, valueData)
 		default:
 			x := typedField.Type.Kind()
 			fmt.Println(x)
@@ -101,12 +98,13 @@ func (o *Model) parseField(typedField reflect.StructField, instance reflect.Valu
 func (o *Model) repareStruct(rType reflect.Type, v bson.M) (r reflect.Value) {
 	instance := reflect.New(rType)
 	for i := 0; i < rType.NumField(); i++ {
-		o.parseField(rType.Field(i), instance, v)
+		ff := instance.Elem().Field(i)
+		o.parseField(rType.Field(i), ff, v)
 	}
 	return instance.Elem()
 }
 func (o *Model) parsePtr(typedField reflect.StructField, instance reflect.Value, v any) {
-	switch instance.Type().Elem().Kind() {
+	switch instance.Type().Kind() {
 	case reflect.Struct:
 		switch v.(type) {
 		case bson.M:
@@ -129,29 +127,14 @@ func (o *Model) parsePtr(typedField reflect.StructField, instance reflect.Value,
 		o.repareFloat(instance, typedField.Name, v)
 	}
 }
-func (o *Model) repareString(value reflect.Value, fieldName string, data any) (r reflect.Value) {
-
-	if value.IsNil() {
-		return
+func (o *Model) repareString(field reflect.Value, fieldName string, data any) (r reflect.Value) {
+	strValue := ""
+	if data != nil {
+		strValue = fmt.Sprintf("%v", data)
+		//value.Elem().FieldByName(fieldName).Set(reflect.ValueOf(x).Convert(value.Elem().FieldByName(fieldName).Type()))
 	}
-	if data == nil {
-		switch value.Elem().FieldByName(fieldName).Type().Kind() {
-		case reflect.String:
-			x := ""
-			value.Elem().FieldByName(fieldName).Set(reflect.ValueOf(x).Convert(value.Elem().FieldByName(fieldName).Type()))
-		}
-		return
-	}
-	rValue := value.Elem().FieldByName(fieldName)
-	var sData reflect.Value
-	switch data.(type) {
-	case primitive.ObjectID:
-		sData = reflect.ValueOf(data)
-	default:
-		sData = reflect.ValueOf(fmt.Sprintf("%v", data))
-	}
-
-	rValue.Set(sData.Convert(rValue.Type()))
+	field.Set(reflect.ValueOf(strValue))
+	//field.Set(sData.Convert(field.Type()))
 	return
 }
 func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tags dbutils.Tags, typedField reflect.StructField) (r reflect.Value) {
@@ -265,7 +248,7 @@ func (o *Model) repareSlice(value reflect.Value, fieldName string, data any, tag
 }
 func (o *Model) reparePtr(typedField reflect.StructField, value reflect.Value, fieldName string, data any) (r reflect.Value) {
 	if data != nil {
-		o.parsePtr(typedField, value.Elem().FieldByName(fieldName), data)
+		o.parsePtr(typedField, value.Elem(), data)
 	}
 	return
 }
@@ -273,18 +256,11 @@ func (o *Model) repareMap(value reflect.Value, fieldName string, data any) (r re
 	return
 }
 func (o *Model) repareBool(value reflect.Value, fieldName string, data any) (r reflect.Value) {
-	if data == nil {
-		switch value.Elem().FieldByName(fieldName).Type().Kind() {
-		case reflect.Bool:
-			x := false
-			value.Elem().FieldByName(fieldName).Set(reflect.ValueOf(x).Convert(value.Elem().FieldByName(fieldName).Type()))
-		}
-		return
+	b := false
+	if data != nil {
+		b, _ = strconv.ParseBool(fmt.Sprintf("%s", data))
 	}
-	parse, _ := strconv.ParseBool(fmt.Sprintf("%v", data))
-	rValue := value.Elem().FieldByName(fieldName)
-	sData := reflect.ValueOf(parse)
-	rValue.Set(sData.Convert(rValue.Type()))
+	value.Set(reflect.ValueOf(b))
 	return
 }
 func (o *Model) repareInt(value reflect.Value, fieldName string, data any) (r reflect.Value) {

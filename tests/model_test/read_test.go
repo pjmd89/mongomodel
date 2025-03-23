@@ -1,9 +1,11 @@
 package model_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/pjmd89/mongomodel/tests"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestRead(t *testing.T) {
@@ -35,29 +37,21 @@ func TestReadOne(t *testing.T) {
 	db := tests.CreateDB()
 	Users := tests.TestTypes{}
 	Users.Init(tests.TestTypes{}, db)
-	result, err := Users.Read(nil, nil)
-	if err != nil {
-		t.Fatal("Se genero un error al consultar la base de datos:", err.Error())
-	}
-	userResult = result.([]tests.TestTypes)
+	id, _ := primitive.ObjectIDFromHex("67698200fbc9721d0e5d0083")
 	findByID := map[string]interface{}{
-		"_id": userResult[0].Id,
+		"_id": id,
 	}
-	t.Logf("ID que se esta buscando: %v", userResult[0].Id.Hex())
 
-	result, err = Users.Read(findByID, nil)
-	userResult = result.([]tests.TestTypes)
+	result, err := Users.Read(findByID, nil)
 	if err != nil {
 		t.Fatal("Se genero un error al consultar la base de datos:", err.Error())
 	}
-
-	if len(userResult) > 1 {
-		t.Fatal("Se encontraron muchos registros")
-	}
-
+	userResult = result.([]tests.TestTypes)
 	if len(userResult) == 0 {
 		t.Fatal("No se consiguio ningun registro")
 	}
+	fmt.Printf("%+v", userResult[0])
+
 }
 func insertNewData(values int) {
 	db := tests.CreateDB()

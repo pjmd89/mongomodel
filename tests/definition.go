@@ -11,7 +11,7 @@ import (
 type TestSubTypes struct {
 	StringOne string `bson:"stringOne" gql:"name=stringOne"`
 	StringTwo string `bson:"stringTwo" gql:"name=stringTwo,default=string2"`
-	IntOne    int    `bson:"IntOne" gql:"name=IntOne"`
+	IntOne    int    `bson:"intOne" gql:"name=intOne"`
 }
 type TestTypes struct {
 	mongomodel.Model    `bson:"-"`

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"reflect"
-	"regexp"
 	"time"
 
 	"github.com/pjmd89/goutils/dbutils"
@@ -96,40 +95,6 @@ func (o *Model) RawRead(where interface{}, opts interface{}) (r interface{}, err
 	return r, err
 }
 
-func (o *Model) CreateIndex(keys interface{}, indexModelOpts, opts interface{}) (r interface{}, err error) {
-	if !o.init {
-		err = errors.New("DB not initialized")
-		return r, err
-	}
-
-	r, err = o.conn.CreateIndex(keys, o.modelName, indexModelOpts, opts)
-
-	return
-}
-
-func (o *Model) ListIndexes(opts interface{}) (r interface{}, err error) {
-	if !o.init {
-		err = errors.New("DB not initialized")
-		return r, err
-	}
-
-	r, err = o.conn.ListIndexes(o.modelName, opts)
-	return
-}
-
-func (o *Model) DropIndex(name string, opts interface{}) (r interface{}, err error) {
-	if !o.init {
-		err = errors.New("DB not initialized")
-		return r, err
-	}
-	r, err = o.conn.DropIndex(name, o.modelName, opts)
-	if err == nil {
-		re := regexp.MustCompile(`"(\d+)"`)
-		r = re.FindStringSubmatch(r.(bson.Raw).String())[1]
-	}
-	return
-}
-
 func (o *Model) Watch(where interface{}, opts interface{}, callback func(any)) (err error) {
 	var changeStream *mongo.ChangeStream
 	var r any
@@ -164,23 +129,6 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 			instance := o.createSliceResult()
 			cursor.All(context.TODO(), &instance)
 			r = instance
-		}
-	}
-	return r, err
-}
-
-func (o *Model) FindOneAndUpdate(inputs map[string]interface{}, where interface{}, opts interface{}) (r *mongo.SingleResult, err error) {
-	var singleResult any
-	if !o.init {
-		err = errors.New("DB not initialized")
-		return r, err
-	}
-	updatedDate := time.Now().Unix()
-	data, err := SetData(inputs, o.updateSelf, DatesController{Updated: &updatedDate})
-	if err == nil {
-		singleResult, err = o.conn.FindOneAndUpdate(Update{Set: data}, where, o.modelName, opts)
-		if err == nil {
-			r = singleResult.(*mongo.SingleResult)
 		}
 	}
 	return r, err

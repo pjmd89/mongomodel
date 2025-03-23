@@ -177,26 +177,14 @@ func (o *MongoDBConn) Read(where interface{}, collection string, opts interface{
 		where = bson.M{}
 	}
 
-	if opts == nil {
+	if opts != nil {
+		if err = o.evaluateType(opts, []*options.FindOptions{}); err != nil {
+			return
+		}
+	} else {
 		opts = []*options.FindOptions{}
 	}
-	optsKind := reflect.ValueOf(opts).Kind()
 
-	switch optsKind {
-	case reflect.Slice:
-		for i, v := range opts.([]*options.FindOptions) {
-			optsType := reflect.ValueOf(v).Type()
-			if optsType != reflect.TypeOf(&options.FindOptions{}) {
-				err = fmt.Errorf("opts %d value is not *options.FindOptions", i)
-				checkOpts = false
-				break
-			}
-		}
-		break
-	default:
-		err = errors.New("opts is not a Slice")
-		checkOpts = false
-	}
 	if checkOpts {
 		cursor, err = coll.Find(context.TODO(), where, opts.([]*options.FindOptions)...)
 		if err == nil {
@@ -213,82 +201,6 @@ func (p *MongoDBConn) evaluateType(typpe, expected interface{}) (err error) {
 		err = fmt.Errorf("opts type must be %s not %s", expectedValueType.String(), inputValueType.String())
 	}
 
-	return
-}
-
-func (o *MongoDBConn) CreateIndex(keys interface{}, collection string, indexModelOpts, opts interface{}) (results interface{}, err error) {
-	isIn, database, collection := o.CheckCollection(collection)
-	if !isIn {
-		err = errors.New("no collection specified")
-		return "", err
-	}
-
-	indexColl := o.client.Database(database).Collection(collection).Indexes()
-	indexM := mongo.IndexModel{
-		Keys: keys,
-		//Options: indexModelOpts.(*options.IndexOptions),
-	}
-
-	if indexModelOpts != nil {
-		if err = o.evaluateType(indexModelOpts, &options.IndexOptions{}); err != nil {
-			return
-		}
-		indexM.Options = indexModelOpts.(*options.IndexOptions)
-	}
-
-	if opts != nil {
-		if err = o.evaluateType(opts, []*options.CreateIndexesOptions{}); err != nil {
-			return
-		}
-	} else {
-		opts = []*options.CreateIndexesOptions{}
-	}
-
-	indexName, err := indexColl.CreateOne(context.TODO(), indexM, opts.([]*options.CreateIndexesOptions)...)
-	if err == nil {
-		results = indexName
-	}
-
-	return
-}
-
-func (o *MongoDBConn) ListIndexes(collection string, opts interface{}) (results interface{}, err error) {
-	isIn, database, collection := o.CheckCollection(collection)
-	if !isIn {
-		err = errors.New("no collection specified")
-		return "", err
-	}
-
-	indexColl := o.client.Database(database).Collection(collection).Indexes()
-	if opts != nil {
-		if err = o.evaluateType(opts, []*options.ListIndexesOptions{}); err != nil {
-			return
-		}
-	} else {
-		opts = []*options.ListIndexesOptions{}
-	}
-
-	results, err = indexColl.ListSpecifications(context.TODO(), opts.([]*options.ListIndexesOptions)...)
-	return
-}
-
-func (o *MongoDBConn) DropIndex(name, collection string, opts interface{}) (results interface{}, err error) {
-	isIn, database, collection := o.CheckCollection(collection)
-	if !isIn {
-		err = errors.New("no collection specified")
-		return "", err
-	}
-
-	indexColl := o.client.Database(database).Collection(collection).Indexes()
-	if opts != nil {
-		if err = o.evaluateType(opts, []*options.DropIndexesOptions{}); err != nil {
-			return
-		}
-	} else {
-		opts = []*options.DropIndexesOptions{}
-	}
-
-	results, err = indexColl.DropOne(context.TODO(), name, opts.([]*options.DropIndexesOptions)...)
 	return
 }
 

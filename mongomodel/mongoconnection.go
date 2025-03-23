@@ -283,34 +283,6 @@ func (o *MongoDBConn) Update(inputs interface{}, where interface{}, collection s
 	return results, err
 }
 
-func (o *MongoDBConn) FindOneAndUpdate(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
-	checkCollection, database, collection := o.CheckCollection(collection)
-	if !checkCollection {
-		err = errors.New("no collection specified")
-		return nil, err
-	}
-	coll := o.client.Database(database).Collection(collection)
-	if where == nil {
-		where = bson.M{}
-	}
-	if opts != nil {
-		if err = o.evaluateType(opts, []*options.FindOneAndUpdateOptions{}); err != nil {
-			return
-		}
-	} else {
-		opts = []*options.FindOneAndUpdateOptions{}
-	}
-
-	r := coll.FindOneAndUpdate(context.TODO(), where, inputs, opts.([]*options.FindOneAndUpdateOptions)...)
-	if r.Err() != nil {
-		err = r.Err()
-		return
-	}
-	results = r
-
-	return
-}
-
 func (o *MongoDBConn) Replace(inputs interface{}, where interface{}, collection string, opts interface{}) (results interface{}, err error) {
 	var cursor *mongo.Cursor
 	checkCollection, database, collection := o.CheckCollection(collection)

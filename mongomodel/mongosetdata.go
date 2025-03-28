@@ -140,7 +140,7 @@ func setNilOn(tag dbutils.Tags, fieldKind reflect.Kind, field reflect.Value, dat
 		var rField interface{}
 		rField, err = setStruct(map[string]interface{}{}, field.Interface(), datesController)
 		field.Set(reflect.ValueOf(rField).Elem())
-		fmt.Println("rfield: ", reflect.ValueOf(rField).Interface(), "field: ", field.Interface())
+		//fmt.Println("rfield: ", reflect.ValueOf(rField).Interface(), "field: ", field.Interface())
 		break
 	case reflect.Ptr:
 		fieldType := field.Type().Elem()
@@ -420,7 +420,7 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 			default:
 				if reflect.TypeOf(primitive.ObjectID{}) == fieldType && reflect.TypeOf(inputs[tag.Name]).Elem().Kind() == reflect.Interface {
 					for i := 0; i < parseArr.Len(); i++ {
-						fmt.Println(parseArr.Index(i))
+						//fmt.Println(parseArr.Index(i))
 						newArr = reflect.Append(newArr, reflect.ValueOf(parseArr.Index(i).Interface().(primitive.ObjectID)))
 					}
 				} else {

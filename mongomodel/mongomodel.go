@@ -117,7 +117,7 @@ func (o *Model) Watch(where interface{}, opts interface{}, callback func(any)) (
 func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {
 	var cursor *mongo.Cursor
 	var updateDate int64 = time.Now().Unix()
-	if o.init == false {
+	if !o.init {
 		err = errors.New("DB not initialized")
 		return r, err
 	}
@@ -132,6 +132,22 @@ func (o *Model) Update(inputs map[string]interface{}, where interface{}, opts in
 		}
 	}
 	return r, err
+}
+
+func (o *Model) Aggregate(pipeline any, opts any) (r any, err error) {
+	if !o.init {
+		err = errors.New("DB not initialized")
+		return
+	}
+	r, err = o.conn.Aggregate(pipeline, o.modelName, opts)
+	if err != nil {
+		return
+	}
+
+	cursor := r.(*mongo.Cursor)
+	instance := []map[string]any{}
+	err = cursor.All(context.TODO(), &instance)
+	return instance, err
 }
 
 func (o *Model) RawUpdate(inputs map[string]interface{}, where interface{}, opts interface{}) (r interface{}, err error) {

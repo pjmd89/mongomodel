@@ -55,17 +55,21 @@ func (o *MongoDBConn) Connect() (err error) {
 	monitor := &event.PoolMonitor{
 		Event: o.monitor,
 	}
-	conn, _ := mongo.NewClient(options.Client().ApplyURI(uri).SetPoolMonitor(monitor).SetHeartbeatInterval(time.Duration(sleep) * time.Second))
+
+	opts := options.Client().ApplyURI(uri)
+	opts.SetPoolMonitor(monitor).SetHeartbeatInterval(time.Duration(sleep) * time.Second)
+
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Duration(sleep)*time.Second)
+	conn, _ := mongo.Connect(ctx, opts)
 	defer cancel()
-	conn.Connect(ctx)
 	o.client = conn
+
 	err = o.ping()
 	if err != nil {
-		fmt.Println("Error connecting to MongoDB")
+		fmt.Println("error connecting to MongoDB")
 		o.client.Disconnect(context.TODO())
 	} else {
-		fmt.Println("Connected to MongoDB")
+		fmt.Println("connected to MongoDB")
 	}
 
 	return err
@@ -79,8 +83,8 @@ func (o *MongoDBConn) GetClient() interface{} {
 func (o *MongoDBConn) RenameCollection(from, to string) {
 
 	rename := bson.D{
-		{"renameCollection", from},
-		{"to", to},
+		{Key: "renameCollection", Value: from},
+		{Key: "to", Value: to},
 	}
 	var result bson.M
 	err := o.client.Database("admin").RunCommand(context.TODO(), rename).Decode(&result)
@@ -129,7 +133,7 @@ func (o *MongoDBConn) Create(inputs interface{}, collection string, opts interfa
 	checkCollection, database, collection := o.CheckCollection(collection)
 	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
 		return nil, err
 	}
 	if opts == nil {
@@ -167,9 +171,8 @@ func (o *MongoDBConn) Read(where interface{}, collection string, opts interface{
 	var cursor *mongo.Cursor
 	results = cursor
 	checkCollection, database, collection := o.CheckCollection(collection)
-	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
 		return nil, err
 	}
 	coll := o.client.Database(database).Collection(collection)
@@ -185,11 +188,9 @@ func (o *MongoDBConn) Read(where interface{}, collection string, opts interface{
 		opts = []*options.FindOptions{}
 	}
 
-	if checkOpts {
-		cursor, err = coll.Find(context.TODO(), where, opts.([]*options.FindOptions)...)
-		if err == nil {
-			results = cursor
-		}
+	cursor, err = coll.Find(context.TODO(), where, opts.([]*options.FindOptions)...)
+	if err == nil {
+		results = cursor
 	}
 	return results, err
 }
@@ -200,8 +201,31 @@ func (p *MongoDBConn) evaluateType(typpe, expected interface{}) (err error) {
 	if inputValueType != expectedValueType {
 		err = fmt.Errorf("opts type must be %s not %s", expectedValueType.String(), inputValueType.String())
 	}
-
 	return
+}
+
+func (o *MongoDBConn) Aggregate(pipeline any, collection string, opts any) (results any, aggregationError error) {
+	checkCollection, database, collection := o.CheckCollection(collection)
+	if !checkCollection {
+		aggregationError = errors.New("no collection specified")
+		return nil, aggregationError
+	}
+
+	coll := o.client.Database(database).Collection(collection)
+
+	if opts != nil {
+		if aggregationError = o.evaluateType(opts, []*options.AggregateOptions{}); aggregationError != nil {
+			return
+		}
+	} else {
+		opts = []*options.AggregateOptions{}
+	}
+
+	if pipeline == nil {
+		pipeline = mongo.Pipeline{}
+	}
+
+	return coll.Aggregate(context.TODO(), pipeline, opts.([]*options.AggregateOptions)...)
 }
 
 func (o *MongoDBConn) Watch(where interface{}, collection string, opts interface{}) (results interface{}, err error) {
@@ -210,7 +234,7 @@ func (o *MongoDBConn) Watch(where interface{}, collection string, opts interface
 	checkCollection, database, collection := o.CheckCollection(collection)
 	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
 		return nil, err
 	}
 	coll := o.client.Database(database).Collection(collection)
@@ -288,7 +312,7 @@ func (o *MongoDBConn) Replace(inputs interface{}, where interface{}, collection 
 	checkCollection, database, collection := o.CheckCollection(collection)
 	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
 		return nil, err
 	}
 	coll := o.client.Database(database).Collection(collection)
@@ -332,7 +356,7 @@ func (o *MongoDBConn) Delete(where interface{}, collection string, opts interfac
 	checkCollection, database, collection := o.CheckCollection(collection)
 	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
 		return nil, err
 	}
 	coll := o.client.Database(database).Collection(collection)
@@ -376,7 +400,7 @@ func (o *MongoDBConn) Count(where interface{}, collection string, opts interface
 	checkCollection, database, collection := o.CheckCollection(collection)
 	checkOpts := true
 	if !checkCollection {
-		err = errors.New("No collection specified")
+		err = errors.New("no collection specified")
 		return nil, err
 	}
 	coll := o.client.Database(database).Collection(collection)

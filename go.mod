@@ -3,13 +3,13 @@ module github.com/pjmd89/mongomodel
 go 1.19
 
 require (
-	github.com/pjmd89/goutils v1.2.1-0.20241226183713-dab0eee4896c
-	go.mongodb.org/mongo-driver v1.17.1
+	github.com/pjmd89/goutils v1.2.1-0.20250814044432-4f700fca9bf3
+	go.mongodb.org/mongo-driver v1.17.4
 )
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

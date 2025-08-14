@@ -56,6 +56,15 @@ type TestTypes struct {
 	UpdatedPrt          *int64                  `bson:"updatedPtr" gql:"name=updatedPtr,updatedDate=true"`
 }
 
+type TestTea struct {
+	mongomodel.Model `bson:"-"`
+	Id               primitive.ObjectID `bson:"_id,omitempty" gql:"name=_id,id=true,objectID=true"`
+	Type             string             `bson:"type" gql:"name=type"`
+	Category         string             `bson:"category" gql:"name=category"`
+	Toppings         []string           `bson:"toppings" gql:"name=toppings"`
+	Price            float32            `bson:"price" gql:"name=price"`
+}
+
 type TestIndex struct {
 	mongomodel.Model `bson:"-"`
 	//Headquarter      TestGeospatialIndex `bson:"headquarter" gql:"name=headquarter"`

@@ -401,18 +401,27 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 			parseArr := reflect.ValueOf(inputs[tag.Name])
 			fieldType := field.Type().Elem()
 			newArr := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
-			switch field.Type().Elem().Kind() {
-			case reflect.Struct, reflect.Ptr:
+			fieldIsPointer := false
+			if fieldType.Kind() == reflect.Pointer {
+				fieldType = fieldType.Elem()
+				fieldIsPointer = true
+			}
+			switch fieldType.Kind() {
+			case reflect.Struct:
 				switch reflect.TypeOf(inputs[tag.Name]).Kind() {
 				case reflect.Array, reflect.Slice:
+					mField := reflect.New(fieldType)
 					for i := 0; i < parseArr.Len(); i++ {
 						var rField interface{}
-						mField := reflect.New(field.Type().Elem())
 						rField, err = setStruct(inputs[tag.Name].([]interface{})[i].(map[string]interface{}), mField.Elem().Interface(), datesController)
 						if err != nil {
 							break
 						}
-						newArr = reflect.Append(newArr, reflect.ValueOf(rField).Elem())
+						valueOfElementArr := reflect.ValueOf(rField)
+						if !fieldIsPointer {
+							valueOfElementArr = valueOfElementArr.Elem()
+						}
+						newArr = reflect.Append(newArr, valueOfElementArr)
 					}
 					field.Set(newArr)
 				}

@@ -288,10 +288,13 @@ func setDataOn(inputs map[string]interface{}, tag dbutils.Tags, fieldKind reflec
 	rType := field.Type()
 	switch fieldKind {
 	case reflect.Struct:
+		if tag.IsNested && inputs[tag.Name] != nil {
+			field.Set(reflect.ValueOf(inputs[tag.Name]))
+			break
+		}
 		var rField interface{}
 		rField, err = setStruct(inputs[tag.Name].(map[string]interface{}), field.Interface(), datesController)
 		field.Set(reflect.ValueOf(rField).Elem())
-		break
 	case reflect.Ptr:
 		inputType := reflect.TypeOf(inputs[tag.Name])
 		inputKind := inputType.Kind()
